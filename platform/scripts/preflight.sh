@@ -61,7 +61,10 @@ else
 
   if [ -n "${VERIFY_CMD:-}" ]; then
     if [ -f .agentlab/verification/run_all.sh ]; then
-      if grep -q 'UNVERIFIED' .agentlab/verification/run_all.sh 2>/dev/null; then
+      # A placeholder is recognised by its explicit marker, not by the word
+      # UNVERIFIED: real runners legitimately print UNVERIFIED when the case
+      # has not been built yet.
+      if grep -q '0 verification cases registered' .agentlab/verification/run_all.sh 2>/dev/null; then
         note "verification is still a placeholder; worker gate will be UNVERIFIED and integration gate will fail"
       else
         ok "verification runner exists"

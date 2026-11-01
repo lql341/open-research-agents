@@ -20,6 +20,7 @@ tests/fixtures/      平台 smoke test 用的小型 fixture（不是 CFD 产品�
 
 | 文档 | 读者 | 内容 |
 |---|---|---|
+| [`docs/validation.md`](docs/validation.md) | 人 | 验证实验：一次完整的代码改动闭环 |
 | [`docs/platform-support.md`](docs/platform-support.md) | 人 | macOS / Linux / Windows 支持矩阵与已知限制 |
 | [`docs/install-manual.md`](docs/install-manual.md) | 人 | 手动安装，逐步验证，含排错和卸载 |
 | [`docs/install-agent.md`](docs/install-agent.md) | coding agent | 可执行安装协议，人类只回答问题 |
@@ -114,8 +115,11 @@ agentlab clean <ws...>          # 删 worktree，保留分支和日志
 ### 平台自测
 
 ```bash
-bash tests/platform_smoke.sh
+bash tests/platform_smoke.sh      # 33 项：脚本、CLI、安装生命周期
+bash scripts/validate-harness.sh  # 16 项：完整门禁闭环，不调模型
 ```
+
+想验证"worker 能改代码且门禁不骗人"，按 [`docs/validation.md`](docs/validation.md) 走。
 
 ## 首次审计（2026-11-01）
 

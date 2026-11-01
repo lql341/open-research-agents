@@ -1,0 +1,7 @@
+# Allowed path prefixes for the spatial workstream.
+modules/spatial/
+tests/unit/spatial/
+CMakeLists.txt
+.agentlab/reports/spatial.md
+.agentlab/RFC/spatial-*
+.agentlab/repro/spatial-*

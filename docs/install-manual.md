@@ -305,6 +305,17 @@ agentlab gate <workstream> --mode integration   # 合并前必须 PASS
 
 ---
 
+## 8.5 先跑一次验证实验
+
+在接真实仓库之前，建议先在临时目录跑一遍完整闭环：
+
+```bash
+bash scripts/validate-harness.sh          # 零成本，验证脚手架
+```
+
+然后按 [`validation.md`](validation.md) 的方式 B，让真实 worker 做同一个任务。
+这一步通过后，再考虑切到你的真实仓库。
+
 ## 9. 排错
 
 | 现象 | 原因 | 处理 |
