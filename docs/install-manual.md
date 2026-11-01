@@ -190,7 +190,7 @@ guard
 以 OneFLOW 为例，仓库路径按你的实际路径改：
 
 ```bash
-agentlab install cfd oneflow /Users/luql/Downloads/agent/repo/OneFLOW
+agentlab install cfd oneflow ~/OneFLOW
 ```
 
 它会：
@@ -202,7 +202,7 @@ agentlab install cfd oneflow /Users/luql/Downloads/agent/repo/OneFLOW
 然后**必须提交**，因为 `scope_check.sh` 从 base ref 读取 scope：
 
 ```bash
-cd /Users/luql/Downloads/agent/repo/OneFLOW
+cd ~/OneFLOW
 git status --short
 git add .agentlab AGENTS.md
 git commit -m "agentlab: add collaboration target pack"

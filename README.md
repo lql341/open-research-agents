@@ -57,10 +57,10 @@ OneFLOW 的模块边界不像 starter 的 `spatial/temporal` 那么干净。v0.1
 
 ```bash
 # 1) 安装 domain + OneFLOW target 到 OneFLOW 的 .agentlab/
-agentlab install cfd oneflow /Users/luql/Downloads/agent/repo/OneFLOW
+agentlab install cfd oneflow ~/OneFLOW
 
 # 2) 检查并提交 .agentlab（scope_check 从 base ref 读取 scope）
-cd /Users/luql/Downloads/agent/repo/OneFLOW
+cd ~/OneFLOW
 git status --short
 git add .agentlab
 git commit -m "agentlab: add OneFLOW target pack"
@@ -79,7 +79,7 @@ agentlab status
 审计分支用轻量合并（只允许 reports/RFC/repro）：
 
 ```bash
-cd /Users/luql/Downloads/agent/repo/OneFLOW
+cd ~/OneFLOW
 agentlab integrate-audit runtime-io numerics
 # 人工 review 后：
 git checkout dev && git merge --no-ff audit-integration

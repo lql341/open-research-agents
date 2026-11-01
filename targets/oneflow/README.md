@@ -21,9 +21,9 @@ v0.1 therefore starts with two **read-only audits**:
 ## Install
 
 ```bash
-export AGENTLAB=/Users/luql/Downloads/agent/repo/open-research-agents
-"$AGENTLAB/platform/scripts/install_target.sh" cfd oneflow /Users/luql/Downloads/agent/repo/OneFLOW
-cd /Users/luql/Downloads/agent/repo/OneFLOW
+export AGENTLAB=~/open-research-agents
+"$AGENTLAB/platform/scripts/install_target.sh" cfd oneflow ~/OneFLOW
+cd ~/OneFLOW
 git add .agentlab
 git commit -m "agentlab: add OneFLOW target pack"
 ```
@@ -34,7 +34,7 @@ workers start, because `scope_check` reads scopes from the base ref.
 ## Run the audits
 
 ```bash
-cd /Users/luql/Downloads/agent/repo/OneFLOW
+cd ~/OneFLOW
 "$AGENTLAB/platform/scripts/preflight.sh" runtime-io
 "$AGENTLAB/platform/scripts/run_worker.sh" runtime-io
 "$AGENTLAB/platform/scripts/run_worker.sh" numerics
@@ -51,7 +51,7 @@ Audit workers commit only reports/RFC/repro. No build, no ctest, no code edits.
 ## Merge audit reports
 
 ```bash
-cd /Users/luql/Downloads/agent/repo/OneFLOW
+cd ~/OneFLOW
 "$AGENTLAB/platform/scripts/integrate_audit.sh" runtime-io numerics
 # review .agentlab/reports/*.md and .agentlab/RFC/*.md
 git checkout dev
