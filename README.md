@@ -14,16 +14,35 @@ tests/fixtures/      平台 smoke test 用的小型 fixture（不是 CFD 产品�
 
 求解器代码不在本仓库。领域包通过 `install_domain.sh` 装进目标仓库的 `.agentlab/`。
 
-## 快速开始：OneFLOW
-
-OneFLOW 的模块边界不像 starter 的 `spatial/temporal` 那么干净。v0.1 先开两个**只读审计 worker**，让人确认边界和 scope 后再切到代码模式。
+## 安装
 
 ```bash
 cd open-research-agents
 export AGENTLAB="$PWD"
 
+# 一个独立的 worker Pi 配置目录（不影响你日常的 pi）
+mkdir -p ~/.pi/agentlab
+PI_CODING_AGENT_DIR=~/.pi/agentlab pi /login
+
+# 可选：写配置
+mkdir -p ~/.config/agentlab
+cp examples/agentlab.config.toml ~/.config/agentlab/config.toml
+
+# 放到 PATH
+ln -sf "$AGENTLAB/bin/agentlab" ~/.local/bin/agentlab
+
+agentlab doctor
+```
+
+`agentlab` 只在自己启动的子进程里设置 `PI_CODING_AGENT_DIR`，你的 `~/.pi/agent` 不受影响。
+
+## 快速开始：OneFLOW
+
+OneFLOW 的模块边界不像 starter 的 `spatial/temporal` 那么干净。v0.1 先开两个**只读审计 worker**，让人确认边界和 scope 后再切到代码模式。
+
+```bash
 # 1) 安装 domain + OneFLOW target 到 OneFLOW 的 .agentlab/
-"$AGENTLAB/platform/scripts/install_target.sh" cfd oneflow /Users/luql/Downloads/agent/repo/OneFLOW
+agentlab install cfd oneflow /Users/luql/Downloads/agent/repo/OneFLOW
 
 # 2) 检查并提交 .agentlab（scope_check 从 base ref 读取 scope）
 cd /Users/luql/Downloads/agent/repo/OneFLOW
@@ -32,9 +51,11 @@ git add .agentlab
 git commit -m "agentlab: add OneFLOW target pack"
 
 # 3) 只读审计
-"$AGENTLAB/platform/scripts/preflight.sh" runtime-io
-"$AGENTLAB/platform/scripts/run_worker.sh" runtime-io
-"$AGENTLAB/platform/scripts/run_worker.sh" numerics
+agentlab doctor
+agentlab status
+agentlab run runtime-io
+agentlab run numerics
+agentlab status
 ```
 
 审计报告在 `.agentlab/reports/runtime-io.md` 和 `.agentlab/reports/numerics.md`。
@@ -44,7 +65,7 @@ git commit -m "agentlab: add OneFLOW target pack"
 
 ```bash
 cd /Users/luql/Downloads/agent/repo/OneFLOW
-"$AGENTLAB/platform/scripts/integrate_audit.sh" runtime-io numerics
+agentlab integrate-audit runtime-io numerics
 # 人工 review 后：
 git checkout dev && git merge --no-ff audit-integration
 ```
@@ -56,6 +77,22 @@ git checkout dev && git merge --no-ff audit-integration
 3. 把 `.agentlab/target.env` 的 `AGENTLAB_MODE=audit` 改成 `worker`；
 4. 校验 `BUILD_CMD` / `UNIT_CMD`；
 5. 注册真实验证算例后，才能跑 integration。
+
+### 常用命令
+
+```bash
+agentlab doctor                 # Pi、profile、guard、目标仓库
+agentlab config                 # 解析后的配置
+agentlab status [--json]        # workstream / 报告 / gate / 待决 RFC
+agentlab preflight <ws>
+agentlab run <ws> [extra...]
+agentlab gate [ws] --mode integration
+agentlab integrate <ws...>
+agentlab pi <ws>                # 在该 workstream 的工作树里交互式开 Pi
+agentlab clean <ws...>          # 删 worktree，保留分支和日志
+```
+
+完整说明见 `docs/usage.md`。
 
 ### 平台自测
 

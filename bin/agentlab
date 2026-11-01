@@ -1,0 +1,235 @@
+#!/usr/bin/env bash
+# agentlab - thin CLI over the agent-lab platform scripts.
+# It never installs, patches, or reconfigures Pi globally. Every subcommand runs
+# in its own process and passes PI_CODING_AGENT_DIR only to its children.
+set -uo pipefail
+
+SELF="${BASH_SOURCE[0]}"
+while [ -L "$SELF" ]; do SELF="$(readlink "$SELF")"; done
+AGENTLAB="$(cd "$(dirname "$SELF")/.." && pwd)"
+CONFIG_FILE="${AGENTLAB_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/agentlab/config.toml}"
+
+# Capture the caller's environment before defaults and config are applied.
+PI_BIN_ENV="${PI_BIN-}"
+PI_PROFILE_ENV="${PI_PROFILE-}"
+PI_ARGS_ENV="${PI_ARGS-}"
+WT_ROOT_ENV="${WT_ROOT-}"
+
+PI_BIN="pi"
+PI_PROFILE=""
+PI_ARGS=""
+WT_ROOT=""
+
+# Expand a leading ~ in a path.
+expand() { case "$1" in "~"|"~/"*) printf '%s%s' "$HOME" "${1#\~}";; *) printf '%s' "$1";; esac; }
+
+# Minimal config.toml reader: [section] + key = "value". Unknown keys are ignored.
+load_config() {
+  [ -f "$CONFIG_FILE" ] || return 0
+  local out k v
+  out="$(awk '
+    /^[[:space:]]*#/ { next }
+    /^[[:space:]]*$/ { next }
+    /^[[:space:]]*\[/ {
+      s=$0; sub(/^[[:space:]]*\[/,"",s); sub(/\][[:space:]]*$/,"",s); section=s; next
+    }
+    /=/ {
+      key=$1
+      sub(/^[^=]*=[[:space:]]*/,"",key)
+      val=$0
+      sub(/^[^=]*=/,"",val)
+      gsub(/^[[:space:]]+|[[:space:]]+$/,"",val)
+      gsub(/^"|"$/,"",val)
+      k=$0; sub(/[[:space:]]*=.*/,"",k); gsub(/^[[:space:]]+|[[:space:]]+$/,"",k)
+      if (section!="") print section "." k "=" val; else print k "=" val
+    }
+  ' "$CONFIG_FILE")"
+  while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    k="${line%%=*}"; v="${line#*=}"
+    case "$k" in
+      pi.bin) PI_BIN="${v:-pi}" ;;
+      pi.profile) PI_PROFILE="$v" ;;
+      pi.args) PI_ARGS="$v" ;;
+      runtime.worktree_root) WT_ROOT="$v" ;;
+      platform.home) AGENTLAB="$(expand "$v")" ;;
+    esac
+  done <<< "$out"
+  [ -n "$PI_PROFILE" ] && PI_PROFILE="$(expand "$PI_PROFILE")"
+  [ -n "$WT_ROOT" ] && WT_ROOT="$(expand "$WT_ROOT")"
+}
+
+load_config
+
+# Environment wins over the config file.
+[ -n "$PI_BIN_ENV" ] && PI_BIN="$PI_BIN_ENV"
+[ -n "$PI_PROFILE_ENV" ] && PI_PROFILE="$PI_PROFILE_ENV"
+[ -n "$PI_ARGS_ENV" ] && PI_ARGS="$PI_ARGS_ENV"
+[ -n "$WT_ROOT_ENV" ] && WT_ROOT="$WT_ROOT_ENV"
+
+repo_root() {
+  git rev-parse --show-toplevel 2>/dev/null || {
+    echo "agentlab: not inside a git repository" >&2
+    exit 2
+  }
+}
+
+has_agentlab() {
+  [ -f "$(repo_root)/.agentlab/domain.env" ] || {
+    echo "agentlab: .agentlab/ not found; run: agentlab install <domain> <target> <repo>" >&2
+    exit 2
+  }
+}
+
+usage() {
+  cat <<'USAGE'
+agentlab - run Pi-based collaborative workstreams in a target repository
+
+  agentlab version
+  agentlab config
+  agentlab doctor
+
+  agentlab install <domain> <target> <repo>   install a domain+target pack into <repo>/.agentlab
+  agentlab status [--json]                    workstream, report, gate and pending decisions
+  agentlab preflight <workstream>
+  agentlab run <workstream> [extra...]        start a worker (mode comes from .agentlab/target.env)
+  agentlab gate [workstream] [--mode MODE]    run the gate (audit|worker|integration|release)
+  agentlab integrate <workstream...>          merge worker branches and run the integration gate
+  agentlab integrate-audit <workstream...>    merge audit branches (reports/RFC/repro only)
+  agentlab pi <workstream>                    open interactive Pi in that workstream's worktree
+  agentlab clean <workstream...>              remove worker worktrees, keep branches and logs
+
+Environment:
+  AGENTLAB_CONFIG   config file (default: ${XDG_CONFIG_HOME:-$HOME/.config}/agentlab/config.toml)
+  PI_BIN            Pi executable (default: pi)
+  PI_PROFILE        Pi agent dir for workers; exported as PI_CODING_AGENT_DIR
+  PI_ARGS           extra Pi arguments for workers
+USAGE
+}
+
+# Export the worker Pi profile for this process only. Never written to a shell profile.
+with_profile() {
+  if [ -n "$PI_PROFILE" ]; then export PI_CODING_AGENT_DIR="$PI_PROFILE"; fi
+  if [ -n "$WT_ROOT" ]; then export WT_ROOT; fi
+  export PI_BIN
+  [ -n "$PI_ARGS" ] && export PI_ARGS
+  return 0
+}
+
+cmd="${1:-}"
+[ -n "$cmd" ] && shift || true
+
+case "$cmd" in
+  version)
+    echo "agentlab $(git -C "$AGENTLAB" rev-parse --short HEAD 2>/dev/null || echo dev)"
+    echo "home   $AGENTLAB"
+    ;;
+
+  config)
+    echo "home        $AGENTLAB"
+    echo "config      $CONFIG_FILE $([ -f "$CONFIG_FILE" ] && echo '(found)' || echo '(absent, using defaults)')"
+    echo "pi.bin      $PI_BIN"
+    echo "pi.profile  ${PI_PROFILE:-(unset: workers use the default Pi agent dir)}"
+    echo "pi.args     ${PI_ARGS:-(none)}"
+    echo "worktrees   ${WT_ROOT:-(default: <repo>-wt next to the target repo)}"
+    ;;
+
+  doctor)
+    with_profile
+    exec "$AGENTLAB/scripts/doctor.sh"
+    ;;
+
+  install)
+    [ $# -eq 3 ] || { echo "usage: agentlab install <domain> <target> <repo>" >&2; exit 2; }
+    exec "$AGENTLAB/platform/scripts/install_target.sh" "$1" "$2" "$3"
+    ;;
+
+  status)
+    has_agentlab
+    with_profile
+    exec python3 "$AGENTLAB/scripts/status.py" "$@"
+    ;;
+
+  preflight)
+    [ $# -ge 1 ] || { echo "usage: agentlab preflight <workstream>" >&2; exit 2; }
+    has_agentlab
+    with_profile
+    exec "$AGENTLAB/platform/scripts/preflight.sh" "$@"
+    ;;
+
+  run)
+    [ $# -ge 1 ] || { echo "usage: agentlab run <workstream> [extra...]" >&2; exit 2; }
+    has_agentlab
+    with_profile
+    exec "$AGENTLAB/platform/scripts/run_worker.sh" "$@"
+    ;;
+
+  gate)
+    MODE=""
+    args=()
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --mode) MODE="${2:-}"; shift 2 ;;
+        *) args+=("$1"); shift ;;
+      esac
+    done
+    has_agentlab
+    with_profile
+    [ -n "$MODE" ] && export GATE_MODE="$MODE"
+    exec "$AGENTLAB/platform/scripts/gate.sh" "${args[@]:-}"
+    ;;
+
+  integrate)
+    [ $# -ge 1 ] || { echo "usage: agentlab integrate <workstream...>" >&2; exit 2; }
+    has_agentlab
+    with_profile
+    exec "$AGENTLAB/platform/scripts/integrate.sh" "$@"
+    ;;
+
+  integrate-audit)
+    [ $# -ge 1 ] || { echo "usage: agentlab integrate-audit <workstream...>" >&2; exit 2; }
+    has_agentlab
+    with_profile
+    exec "$AGENTLAB/platform/scripts/integrate_audit.sh" "$@"
+    ;;
+
+  pi)
+    [ $# -ge 1 ] || { echo "usage: agentlab pi <workstream>" >&2; exit 2; }
+    ws="$1"; shift
+    has_agentlab
+    with_profile
+    root="$(repo_root)"
+    # shellcheck disable=SC1091
+    source "$root/.agentlab/domain.env"
+    wt_root="${WT_ROOT:-$(dirname "$root")/$(basename "$root")-wt}"
+    wt="$wt_root/$ws"
+    [ -d "$wt" ] || { echo "agentlab: no worktree for '$ws' at $wt; run: agentlab run $ws" >&2; exit 2; }
+    mkdir -p "$wt_root/sessions" "$wt_root/logs"
+    cd "$wt"
+    exec "$PI_BIN" \
+      --session-id "agentlab-$ws" --session-dir "$wt_root/sessions" --name "agentlab-$ws" \
+      -e "$AGENTLAB/platform/extensions/guard.ts" \
+      ${PI_ARGS:-} "$@"
+    ;;
+
+  clean)
+    [ $# -ge 1 ] || { echo "usage: agentlab clean <workstream...>" >&2; exit 2; }
+    has_agentlab
+    root="$(repo_root)"
+    with_profile
+    # shellcheck disable=SC1091
+    source "$root/.agentlab/domain.env"
+    wt_root="${WT_ROOT:-$(dirname "$root")/$(basename "$root")-wt}"
+    for ws in "$@"; do
+      if [ -d "$wt_root/$ws" ]; then
+        git -C "$root" worktree remove "$wt_root/$ws" --force && echo "removed worktree $ws"
+      else
+        echo "no worktree for $ws"
+      fi
+    done
+    echo "branches agent/* and $wt_root/logs are kept"
+    ;;
+
+  ""|-h|--help|help) usage ;;
+  *) echo "agentlab: unknown command '$cmd'" >&2; echo >&2; usage >&2; exit 2 ;;
+esac

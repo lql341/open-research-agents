@@ -1,0 +1,19 @@
+# Copy to ~/.config/agentlab/config.toml
+# Environment variables (PI_BIN, PI_PROFILE, PI_ARGS, WT_ROOT) win over this file.
+
+[pi]
+# The Pi executable. Same install as your daily Pi.
+bin = "pi"
+
+# A separate Pi agent directory for workers. Create it once with:
+#   PI_CODING_AGENT_DIR=~/.pi/agentlab pi /login
+# Leaving it empty makes workers share your daily Pi agent dir, which also
+# loads your personal extensions and skills into every worker.
+profile = "~/.pi/agentlab"
+
+# Extra Pi arguments for every worker, for example a cheaper model.
+# args = "--model openai/gpt-5-mini"
+
+[runtime]
+# Where worker worktrees live. Default: <repo>-wt next to the target repository.
+# worktree_root = "~/agentlab-wt"
