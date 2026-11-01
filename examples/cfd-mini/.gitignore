@@ -1,0 +1,10 @@
+build/
+cmake-build-*/
+compile_commands.json
+*.o
+*.a
+*.so
+*.dylib
+.agentlab/sessions/
+.agentlab/reports/logs/
+.DS_Store

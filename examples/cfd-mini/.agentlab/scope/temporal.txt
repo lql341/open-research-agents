@@ -1,0 +1,7 @@
+# Allowed path prefixes for the temporal worker.
+modules/temporal/
+tests/unit/temporal/
+tests/mocks/
+.agentlab/reports/temporal.md
+.agentlab/RFC/temporal-*
+.agentlab/repro/temporal-*

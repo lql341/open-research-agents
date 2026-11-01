@@ -1,0 +1,6 @@
+# Allowed path prefixes for the spatial worker.
+modules/spatial/
+tests/unit/spatial/
+.agentlab/reports/spatial.md
+.agentlab/RFC/spatial-*
+.agentlab/repro/spatial-*
