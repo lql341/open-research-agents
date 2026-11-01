@@ -144,6 +144,24 @@ def recent_log(wt_root: Path, workstream: str) -> tuple[str, str] | None:
     return last.name, error
 
 
+def detached_state(wt_root: Path, workstream: str) -> dict | None:
+    """A detached worker's pid file, and whether the process is still alive."""
+    pid_file = wt_root / "run" / f"{workstream}.pid"
+    if not pid_file.is_file():
+        return None
+    try:
+        pid = int(pid_file.read_text().strip())
+    except (OSError, ValueError):
+        return None
+    alive = False
+    try:
+        os.kill(pid, 0)
+        alive = True
+    except OSError:
+        alive = False
+    return {"pid": pid, "alive": alive}
+
+
 def pending_rfcs(root: Path, agentlab: Path, ref: str | None) -> list[tuple[str, str]]:
     """RFCs with `Status: proposed`, read from the worker branch when it exists."""
     items: list[tuple[str, str]] = []
@@ -211,6 +229,7 @@ def main(argv: list[str]) -> int:
             wt_state = "dirty" if dirty else "clean"
         ahead = git(root, "rev-list", "--count", f"{base}..{branch}") if has_branch else "0"
         log = recent_log(wt_root, ws)
+        detached = detached_state(wt_root, ws)
         rows.append({
             "workstream": ws,
             "report": status,
@@ -222,6 +241,7 @@ def main(argv: list[str]) -> int:
             "ahead": ahead,
             "log": (log or ("", ""))[0],
             "log_error": (log or ("", ""))[1],
+            "detached": detached,
         })
 
     base_exists = bool(git(root, "rev-parse", "--verify", base))
@@ -254,6 +274,15 @@ def main(argv: list[str]) -> int:
     for row in rows:
         print(f"{row['workstream']:<14}{row['report']:<16}{row['gate']:<18}"
               f"{row['worktree']:<10}{row['branch']:<8}{row['ahead']:<6}")
+    # Detached workers replace the "no worktree" dash with a live marker.
+    running = [row for row in rows if row["detached"] and row["detached"]["alive"]]
+    if running:
+        print("Running in background:")
+        for row in running:
+            print(f"  {row['workstream']:<14}pid {row['detached']['pid']}  "
+                  f"stop with: kill {row['detached']['pid']}")
+        print()
+
     print()
     for row in rows:
         if row["report_meta"]:

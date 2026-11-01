@@ -3,10 +3,15 @@
 # Env: PI_BIN (default pi), PI_ARGS, PI_SESSION=0 for --no-session,
 #      WT_ROOT, BASE_REF, SKIP_PREFLIGHT=1, AGENTLAB_MODE=audit|worker
 set -uo pipefail
-PLATFORM="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SELF="${BASH_SOURCE[0]}"
+PLATFORM="$(cd "$(dirname "$SELF")" && pwd)"
 MODULE="${1:?usage: run_worker.sh <workstream> [instruction]}"; shift || true
 EXTRA="${*:-}"
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "run_worker: not inside a git repository"; exit 2; }
+# A detached child starts from the worktree, so the parent passes the real
+# repository root and worktree root explicitly. Without this the child would
+# compute a nested <worktree>-wt and use a different pid/session directory.
+ROOT="${AGENTLAB_ROOT:-$ROOT}"
 cd "$ROOT"
 [ -f .agentlab/domain.env ] || { echo "run_worker: missing .agentlab/domain.env"; exit 2; }
 # shellcheck disable=SC1091
@@ -24,17 +29,21 @@ if [ -n "$(git status --porcelain)" ]; then
   git status --short | sed 's/^/  /'
 fi
 
-WT_ROOT="${WT_ROOT:-$(dirname "$ROOT")/$(basename "$ROOT")-wt}"
+WT_ROOT="${AGENTLAB_WT_ROOT:-${WT_ROOT:-$(dirname "$ROOT")/$(basename "$ROOT")-wt}}"
 WT="$WT_ROOT/$MODULE"
 BRANCH="agent/$MODULE"
 mkdir -p "$WT_ROOT/logs" "$WT_ROOT/sessions"
 
 if [ ! -d "$WT" ]; then
   mkdir -p "$WT_ROOT"
-  git worktree add -B "$BRANCH" "$WT" "$BASE"
+  git worktree add -B "$BRANCH" "$WT" "$BASE" || {
+    echo "run_worker: could not create worktree $WT" >&2
+    echo "run_worker: if the branch is already checked out elsewhere, run: git worktree prune" >&2
+    exit 1
+  }
 fi
 
-cd "$WT"
+cd "$WT" || { echo "run_worker: cannot enter worktree $WT" >&2; exit 1; }
 if [ -n "$(git status --porcelain)" ]; then
   echo "run_worker: worktree $WT is dirty; clean it before starting"
   exit 1
@@ -126,6 +135,38 @@ if [ -n "$pinned" ]; then
   fi
 fi
 
+RUN_DIR="$WT_ROOT/run"
+mkdir -p "$RUN_DIR"
+
+# --detach: hand this run to a background process so a long turn does not hold
+# the terminal. The parent verifies preflight and the session guard, then exits.
+if [ "${AGENTLAB_DETACH:-0}" = "1" ] && [ "${AGENTLAB_DETACHED:-0}" != "1" ]; then
+  PID_FILE="$RUN_DIR/$MODULE.pid"
+  if [ -f "$PID_FILE" ]; then
+    old_pid="$(cat "$PID_FILE" 2>/dev/null || echo)"
+    if [ -n "$old_pid" ] && kill -0 "$old_pid" 2>/dev/null; then
+      echo "run_worker: $MODULE is already running (pid $old_pid)" >&2
+      echo "run_worker: stop it with: kill $old_pid" >&2
+      exit 4
+    fi
+  fi
+  DLOG="$WT_ROOT/logs/$MODULE-detached-$(date -u +%Y%m%dT%H%M%SZ).log"
+  AGENTLAB_DETACHED=1 AGENTLAB_ROOT="$ROOT" AGENTLAB_WT_ROOT="$WT_ROOT" \
+    nohup bash "$SELF" "$MODULE" "$EXTRA" >"$DLOG" 2>&1 &
+  echo $! > "$PID_FILE"
+  echo "run_worker: detached pid=$(cat "$PID_FILE")"
+  echo "run_worker: log=$DLOG"
+  echo "run_worker: follow with: tail -f $DLOG"
+  echo "run_worker: stop with:   kill \$(cat $PID_FILE)"
+  echo "run_worker: progress:    agentlab status"
+  exit 0
+fi
+
+PID_FILE=""
+if [ "${AGENTLAB_DETACHED:-0}" = "1" ]; then PID_FILE="$RUN_DIR/$MODULE.pid"; fi
+cleanup_pid() { [ -n "$PID_FILE" ] && rm -f "$PID_FILE"; }
+trap cleanup_pid EXIT
+
 LOG="$WT_ROOT/logs/$MODULE-$(date -u +%Y%m%dT%H%M%SZ).log"
 GUARD=(-e "$(cd "$PLATFORM/.." && pwd)/extensions/guard.ts")
 if [ "${PI_SESSION:-1}" = "0" ]; then
@@ -133,6 +174,32 @@ if [ "${PI_SESSION:-1}" = "0" ]; then
 else
   SESSION_ARGS=(--session-id "agentlab-$MODULE" --session-dir "$WT_ROOT/sessions" --name "agentlab-$MODULE")
 fi
+
+report_state() {
+  local head branch_ahead dirty
+  head="$(git rev-parse --short HEAD 2>/dev/null || echo none)"
+  branch_ahead="$(git rev-list --count "$BASE..HEAD" 2>/dev/null || echo 0)"
+  dirty="$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+  echo "run_worker: worktree state: head=$head commits_since_$BASE=$branch_ahead uncommitted=$dirty"
+  if [ "$branch_ahead" -gt 0 ] && [ "$dirty" -eq 0 ]; then
+    echo "run_worker: the work is committed; only the report or the final gate may be missing"
+  elif [ "$branch_ahead" -eq 0 ]; then
+    echo "run_worker: nothing committed yet; re-run to continue from the same session"
+  else
+    echo "run_worker: uncommitted changes present; commit or discard them before re-running"
+  fi
+  echo "run_worker: log=$LOG"
+  echo "run_worker: inspect with: agentlab status"
+}
+
+on_signal() {
+  trap - INT TERM
+  echo >&2
+  echo "run_worker: interrupted" >&2
+  report_state >&2
+  exit 130
+}
+trap on_signal INT TERM
 
 echo "run_worker: mode=$MODE workstream=$MODULE branch=$BRANCH worktree=$WT"
 echo "run_worker: log=$LOG"
@@ -152,4 +219,5 @@ fi
 "$PLATFORM/scope_check.sh" "$MODULE" "$BASE" || rc=1
 
 echo "run_worker: exit=$rc head=$(git rev-parse --short HEAD 2>/dev/null || echo none)"
+if [ $rc -ne 0 ]; then report_state >&2; fi
 exit $rc

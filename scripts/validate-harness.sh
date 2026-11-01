@@ -171,6 +171,67 @@ rc=$?
 [ $rc -ne 0 ] && ok "scope_check refused core/ (exit $rc)" || bad "scope_check allowed a core/ edit"
 grep -q "OUT OF SCOPE: core/field.hpp" /tmp/val-scope.log && ok "names the offending path" || bad "no offending path reported"
 
+say "7. a detached worker keeps the terminal free"
+DET="$TMP/detach"
+DET_WT="$TMP/detach-wt"
+mkdir -p "$DET"
+cp -R "$HOME_DIR/examples/validation/target/." "$DET/"
+( cd "$DET" && git init -q -b main && git add -A && git commit -q -m "detach target" ) >/dev/null
+cat > "$TMP/slow-worker.sh" <<'SLOW'
+#!/usr/bin/env bash
+set -euo pipefail
+sleep 2
+mkdir -p .agentlab/reports
+printf '# Report: spatial\n\nstatus: ready\n' > .agentlab/reports/spatial.md
+git add -A && git commit -q -m "spatial: detached fake work"
+SLOW
+chmod +x "$TMP/slow-worker.sh"
+
+set +e
+( cd "$DET" && WT_ROOT="$DET_WT" PI_BIN="$TMP/slow-worker.sh" "$LAB" run spatial --detach >/tmp/val-detach.log 2>&1 )
+rc=$?
+set -e
+[ $rc -eq 0 ] && ok "detach returns immediately (exit 0)" || { bad "detach exit $rc"; tail -8 /tmp/val-detach.log; }
+grep -q "detached pid=" /tmp/val-detach.log && ok "prints the background pid" || bad "no pid line"
+grep -q "progress:" /tmp/val-detach.log && ok "points at agentlab status" || bad "no follow-up hint"
+
+( cd "$DET" && WT_ROOT="$DET_WT" "$LAB" status >/tmp/val-detach-status.log 2>&1 )
+grep -q "Running in background" /tmp/val-detach-status.log && ok "status shows the running worker" || bad "status does not show the background worker"
+
+sleep 4
+( cd "$DET" && WT_ROOT="$DET_WT" "$LAB" status >/tmp/val-detach-done.log 2>&1 )
+grep -q "ready" /tmp/val-detach-done.log && ok "detached work completed" || bad "detached work did not finish"
+[ -f "$DET_WT/run/spatial.pid" ] && bad "pid file was not cleaned up" || ok "pid file cleaned up"
+[ -f "$DET_WT/spatial/.agentlab/reports/spatial.md" ] && ok "worktree received the report" || bad "report missing"
+
+say "8. interruption reports the worktree state"
+INT="$TMP/interrupt"
+INT_WT="$TMP/interrupt-wt"
+mkdir -p "$INT"
+cp -R "$HOME_DIR/examples/validation/target/." "$INT/"
+( cd "$INT" && git init -q -b main && git add -A && git commit -q -m "interrupt target" ) >/dev/null
+cat > "$TMP/sleep-worker.sh" <<'SLEEP'
+#!/bin/sh
+sleep 30
+SLEEP
+chmod +x "$TMP/sleep-worker.sh"
+
+set +e
+old_pwd="$PWD"
+cd "$INT"
+WT_ROOT="$INT_WT" PI_BIN="$TMP/sleep-worker.sh" "$LAB" run spatial >/tmp/val-interrupt.log 2>&1 &
+interrupt_pid=$!
+cd "$old_pwd"
+sleep 3
+kill -TERM "$interrupt_pid" 2>/dev/null
+wait "$interrupt_pid" 2>/dev/null
+rc=$?
+set -e
+[ $rc -eq 130 ] && ok "interrupted run exits 130" || bad "interrupted run exit $rc"
+grep -q "run_worker: interrupted" /tmp/val-interrupt.log && ok "prints an interruption notice" || bad "no interruption notice"
+grep -q "worktree state:" /tmp/val-interrupt.log && ok "reports commit/dirty state" || bad "no worktree state"
+grep -q "nothing committed yet" /tmp/val-interrupt.log && ok "says how to continue" || bad "no continuation hint"
+
 say "result"
 printf 'validate-harness: %d passed, %d failed\n' "$pass" "$fail"
 [ $fail -eq 0 ]

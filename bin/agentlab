@@ -98,6 +98,8 @@ agentlab - run Pi-based collaborative workstreams in a target repository
   agentlab status [--json]                    workstream, report, gate and pending decisions
   agentlab preflight <workstream>
   agentlab run <workstream> [extra...]        start a worker (mode comes from .agentlab/target.env)
+      --detach                                run it in the background; follow with tail/status
+      --reset-session                         clear that workstream's session history first
   agentlab gate [workstream] [--mode MODE]    run the gate (audit|worker|integration|release)
   agentlab integrate <workstream...>          merge worker branches and run the integration gate
   agentlab integrate-audit <workstream...>    merge audit branches (reports/RFC/repro only)
@@ -175,18 +177,23 @@ case "$cmd" in
 
   run)
     AGENTLAB_RESET_SESSION=0
+    AGENTLAB_DETACH=0
     run_args=()
     while [ $# -gt 0 ]; do
       case "$1" in
         --reset-session|--new-session) AGENTLAB_RESET_SESSION=1; shift ;;
+        --detach|--background) AGENTLAB_DETACH=1; shift ;;
         --) shift; while [ $# -gt 0 ]; do run_args+=("$1"); shift; done ;;
         *) run_args+=("$1"); shift ;;
       esac
     done
-    [ ${#run_args[@]} -ge 1 ] || { echo "usage: agentlab run <workstream> [--reset-session] [extra...]" >&2; exit 2; }
+    [ ${#run_args[@]} -ge 1 ] || {
+      echo "usage: agentlab run <workstream> [--detach] [--reset-session] [extra...]" >&2
+      exit 2
+    }
     has_agentlab
     with_profile
-    export AGENTLAB_RESET_SESSION
+    export AGENTLAB_RESET_SESSION AGENTLAB_DETACH
     exec "$AGENTLAB/platform/scripts/run_worker.sh" "${run_args[@]}"
     ;;
 

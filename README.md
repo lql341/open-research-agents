@@ -103,7 +103,7 @@ agentlab doctor                 # Pi、profile、guard、目标仓库
 agentlab config                 # 解析后的配置
 agentlab status [--json]        # workstream / 报告 / gate / 待决 RFC
 agentlab preflight <ws>
-agentlab run <ws> [extra...]
+agentlab run <ws> [--detach] [extra...]
 agentlab gate [ws] --mode integration
 agentlab integrate <ws...>
 agentlab pi <ws>                # 在该 workstream 的工作树里交互式开 Pi

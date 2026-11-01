@@ -80,6 +80,34 @@ Opens interactive Pi **in that workstream's worktree**, resuming the same
 session (`agentlab-<workstream>`) with the guard extension loaded, so you see
 exactly what the worker saw.
 
+## 4.0 Long runs and interruptions
+
+A worker with `thinking=high` can take many minutes. Do not hold the terminal:
+
+```bash
+agentlab run spatial --detach
+```
+
+It prints a pid, a log path, and returns immediately. Then:
+
+```bash
+agentlab status          # shows "Running in background: spatial pid NNNN"
+tail -f <repo>-wt/logs/spatial-detached-*.log
+kill <pid>               # or kill -TERM <pid> to interrupt cleanly
+```
+
+If you stop a foreground run with Ctrl-C, `run_worker` prints the worktree state
+before exiting:
+
+```text
+run_worker: interrupted
+run_worker: worktree state: head=abc1234 commits_since_main=1 uncommitted=0
+run_worker: the work is committed; only the report or the final gate may be missing
+```
+
+That tells you whether to re-run, commit, or just finish the report. A detached
+worker removes its pid file when it exits, so `status` stops showing it.
+
 ## 4.1 Install, update, uninstall
 
 ```bash
@@ -100,6 +128,18 @@ agentlab uninstall --force --yes             # also when worktrees still exist
 
 `uninstall` removes `.agentlab/` and the generated root `AGENTS.md` pointer, and
 keeps `agent/*` branches, `<repo>-wt/logs`, and the worker Pi profile.
+
+## 4.2 Session hygiene
+
+`--reset-session` clears only that workstream's Pi session:
+
+```bash
+agentlab run spatial --reset-session
+agentlab pi spatial --reset-session
+```
+
+Use it when a session is pinned to a model that is no longer available (the
+guard tells you) or when you want a clean context for a new task.
 
 ## 5. What agentlab never does
 

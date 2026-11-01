@@ -81,8 +81,10 @@ git init -b main && git add -A && git commit -m "validation target"
 # 确认起点是 UNVERIFIED
 agentlab gate spatial        # 期望 exit 2
 
-# 让 worker 干活
-agentlab run spatial
+# 让 worker 干活（thinking=high 时建议加 --detach）
+agentlab run spatial --detach
+agentlab status
+tail -f /tmp/val-wt/logs/spatial-detached-*.log
 
 # 看结果
 agentlab status
