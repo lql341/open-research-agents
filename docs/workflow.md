@@ -7,7 +7,9 @@ natural language.
 `agentlab` does not replace Pi. It adds four things around a normal Pi session:
 a **task**, an **isolated worktree**, a **gate**, and a **commit + report**.
 
-This page is target-neutral. For a complete worked example, see the
+If you only want the first successful run, start with
+[`quickstart.md`](quickstart.md). This page is the full process and is
+target-neutral. For a complete worked example, see the
 [OneFLOW target guide](../targets/oneflow/WORKFLOW.md).
 
 ---

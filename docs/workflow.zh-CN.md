@@ -6,7 +6,8 @@
 `agentlab` 不替代 Pi。它在普通 Pi 会话外面加了四件事：
 **任务（task）**、**隔离工作树（worktree）**、**门禁（gate）**、**提交 + 报告**。
 
-本页是目标无关的通用流程。完整示例见
+只想先跑通一次，看 [`quickstart.zh-CN.md`](quickstart.zh-CN.md)。
+本页是目标无关的完整流程。完整示例见
 [OneFLOW target guide](../targets/oneflow/WORKFLOW.zh-CN.md)。
 
 ---

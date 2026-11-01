@@ -24,6 +24,8 @@ tests/fixtures/         平台 smoke test 用的小型 fixture
 
 | 文档 | 读者 | 内容 |
 |---|---|---|
+| [`docs/quickstart.md`](docs/quickstart.md) | 人 | 5 分钟跑通第一个 worker（English） |
+| [`docs/quickstart.zh-CN.md`](docs/quickstart.zh-CN.md) | 人 | 5 分钟跑通第一个 worker（中文） |
 | [`docs/workflow.md`](docs/workflow.md) | 人 | 用 agentlab 开发任意目标仓库（English） |
 | [`docs/workflow.zh-CN.md`](docs/workflow.zh-CN.md) | 人 | 用 agentlab 开发任意目标仓库（中文） |
 | [`platform/docs/target-pack-spec.md`](platform/docs/target-pack-spec.md) | 人 | target pack 的字段和安装语义 |
@@ -88,6 +90,18 @@ agentlab status
 不改代码。审计完成、scope/contracts/verification 准备好之后，再切 `worker`。
 
 完整流程见 [`docs/workflow.md`](docs/workflow.md) / [`docs/workflow.zh-CN.md`](docs/workflow.zh-CN.md)。
+
+### 学习路径
+
+```text
+quickstart              第一次跑通（5 分钟，validation target）
+  → workflow            通用流程：任务、scope、contracts、gate、集成
+  → validation          完整验证实验，包括“错误实现会被抓住”
+  → target-pack-spec    新增一个目标仓库需要提供什么
+  → targets/oneflow     完整示例：OneFLOW
+```
+
+不需要一开始读完。先跑 quickstart，再按需要查 workflow。
 
 第一个可用示例是 OneFLOW：
 
