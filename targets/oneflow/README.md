@@ -48,6 +48,34 @@ GATE_MODE=audit "$AGENTLAB/platform/scripts/gate.sh" runtime-io
 
 Audit workers commit only reports/RFC/repro. No build, no ctest, no code edits.
 
+## Merge audit reports
+
+```bash
+cd /Users/luql/Downloads/agent/repo/OneFLOW
+"$AGENTLAB/platform/scripts/integrate_audit.sh" runtime-io numerics
+# review .agentlab/reports/*.md and .agentlab/RFC/*.md
+git checkout dev
+git merge --no-ff audit-integration
+```
+
+`integrate_audit.sh` refuses any change outside `.agentlab/reports`, `.agentlab/RFC`,
+and `.agentlab/repro`. It does not build or run tests.
+
+## First audit (2026-11-01)
+
+Both audits have run and their reports are merged into `dev`:
+
+- `.agentlab/reports/runtime-io.md`
+- `.agentlab/RFC/runtime-io-2026-11-01-shared-case-runtime-target.md`
+- `.agentlab/reports/numerics.md`
+- `.agentlab/RFC/numerics-2026-11-01-boundary-contracts.md`
+
+The two human decisions currently blocking the next step:
+
+1. runtime-io: validate the lifecycle contract through a shared production target (A),
+   or only through the real executable + `test/` cases (B)?
+2. numerics: complete dual-time or explicitly declare it unsupported and fail fast?
+
 ## After the audits
 
 1. Read `.agentlab/reports/runtime-io.md` and `.agentlab/reports/numerics.md`.
