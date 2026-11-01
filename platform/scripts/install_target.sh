@@ -59,7 +59,7 @@ fi
 printf 'DOMAIN=%s\nTARGET=%s\n' "$DOMAIN" "$TARGET_NAME" > "$DEST/.pack"
 
 # Pi loads AGENTS.md from the repo root, not .agentlab/. Do not overwrite an
-# existing OneFLOW AGENTS.md; just tell the operator.
+# existing target AGENTS.md; just tell the operator.
 if [ ! -f "$TARGET_REPO/AGENTS.md" ]; then
   cat > "$TARGET_REPO/AGENTS.md" <<'POINTER'
 # Agent Lab target repository

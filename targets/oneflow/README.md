@@ -104,5 +104,6 @@ test entry point.
 
 ## Workflow guide
 
-- [Developing OneFLOW with agentlab](../../docs/oneflow-workflow.md) (English)
-- [用 agentlab 开发 OneFLOW](../../docs/oneflow-workflow.zh-CN.md) (中文)
+- [Developing OneFLOW with agentlab](WORKFLOW.md) (English)
+- [用 agentlab 开发 OneFLOW](WORKFLOW.zh-CN.md) (中文)
+- [Generic agentlab workflow](../../docs/workflow.md)

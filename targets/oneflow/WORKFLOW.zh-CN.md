@@ -1,4 +1,7 @@
-# 用 agentlab 开发 OneFLOW
+# 用 agentlab 开发 OneFLOW（完整示例）
+
+> **目标仓库示例。** 通用流程见 [`docs/workflow.md`](../../docs/workflow.md)。
+> 本页保留 OneFLOW 的具体命令、workstream 和决策。
 
 状态：v0.1  
 读者：习惯 `cd ~/OneFLOW && pi`，然后直接用自然语言提需求的单人开发者。

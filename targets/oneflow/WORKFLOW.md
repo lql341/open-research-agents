@@ -1,4 +1,8 @@
-# Developing OneFLOW with agentlab
+# Developing OneFLOW with agentlab (worked example)
+
+> **Target-specific example.** The generic workflow is
+> [`docs/workflow.md`](../../docs/workflow.md). This page keeps the concrete
+> OneFLOW commands, workstreams and decisions.
 
 Status: v0.1  
 Audience: a solo developer who is used to `cd OneFLOW && pi` and typing requests in

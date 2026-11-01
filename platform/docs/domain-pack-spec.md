@@ -1,5 +1,18 @@
 # Domain Pack Specification
 
+A domain pack is reusable across repositories. A **target pack** is one concrete
+repository. The repository is layered as:
+
+```text
+platform/               generic rules, scripts, gates, CLI
+domains/<domain>/       reusable domain rules
+targets/<target>/       one repository: paths, branch, commands, scope
+```
+
+Install both with `agentlab install <domain> <target> <repo>`; the target overlay
+wins where the two overlap. See
+[`target-pack-spec.md`](target-pack-spec.md).
+
 A domain pack lives at `domains/<name>/` and must provide:
 
 | File/Dir | Purpose |
@@ -14,6 +27,8 @@ A domain pack lives at `domains/<name>/` and must provide:
 
 ## Rules
 
+- The platform must not contain target-specific paths, branches, build commands,
+  or test commands; those belong in a target pack.
 - The platform must not contain CFD-specific logic.
 - Domain packs must not depend on a specific solver repository layout; paths are configured in `scope/`.
 - If a second domain requires changing `platform/`, record the abstraction failure before changing it.

@@ -2,7 +2,7 @@
 
 - Date: 2026-11-01
 - Status: accepted
-- Scope: v0.1 / OneFLOW
+- Scope: v0.1 (first applied to OneFLOW)
 
 ## Decision
 
