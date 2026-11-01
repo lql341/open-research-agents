@@ -12,7 +12,18 @@ targets/oneflow/     OneFLOW 目标覆盖层：真实路径、分支、命令、
 tests/fixtures/      平台 smoke test 用的小型 fixture（不是 CFD 产品代码）
 ```
 
-求解器代码不在本仓库。领域包通过 `install_domain.sh` 装进目标仓库的 `.agentlab/`。
+求解器代码不在本仓库。领域包通过 `agentlab install` 装进目标仓库的 `.agentlab/`。
+
+## 文档
+
+| 文档 | 读者 | 内容 |
+|---|---|---|
+| [`docs/install-manual.md`](docs/install-manual.md) | 人 | 手动安装，逐步验证，含排错和卸载 |
+| [`docs/install-agent.md`](docs/install-agent.md) | coding agent | 可执行安装协议，人类只回答问题 |
+| [`docs/usage.md`](docs/usage.md) | 人 | 日常用法：status / run / gate / integrate / pi |
+| [`platform/docs/governance.md`](platform/docs/governance.md) | 人 | 授权模型与当前强制程度 |
+| [`platform/docs/verification.md`](platform/docs/verification.md) | 人 | 门禁分层与退出码 |
+| [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) | 人 | 长周期路线 |
 
 ## 安装
 
