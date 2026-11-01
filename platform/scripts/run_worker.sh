@@ -113,8 +113,10 @@ pinned="$(model_of_session)"
 if [ -n "$pinned" ]; then
   pinned_provider="${pinned%%$'\t'*}"
   pinned_model="${pinned#*$'\t'}"
+  # ANSI-C quoting does not expand inside double quotes; build the separator once.
+  TAB="$(printf '\t')"
   available="$("${PI_BIN:-pi}" --list-models 2>/dev/null | awk 'NR>1 { print $1 "\t" $2 }')"
-  if [ -n "$available" ] && ! printf '%s\n' "$available" | grep -qxF "$pinned_provider$'\t'$pinned_model"; then
+  if [ -n "$available" ] && ! printf '%s\n' "$available" | grep -qxF "${pinned_provider}${TAB}${pinned_model}"; then
     echo "run_worker: the $MODULE session is pinned to an unavailable model: $pinned_provider/$pinned_model" >&2
     echo "run_worker: available models:" >&2
     printf '%s\n' "$available" | head -10 | sed 's/^/    /' >&2

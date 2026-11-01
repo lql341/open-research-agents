@@ -167,6 +167,18 @@ set -e
 grep -q "cleared the spatial session history" /tmp/agentlab-reset.log && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: --reset-session did not clear the session"; }
 ls "$WT/sessions"/*agentlab-spatial*.jsonl >/dev/null 2>&1 && { fail=$((fail+1)); echo "FAILED: session file survived --reset-session"; } || pass=$((pass+1))
 
+echo "== an available pinned model is not rejected"
+cat > "$WT/sessions/2026-01-02T00-00-00-000Z_agentlab-spatial.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"agentlab-spatial"}
+{"type":"model_change","provider":"real","modelId":"good-model"}
+JSONL
+set +e
+( cd "$SESS_REPO" && WT_ROOT="$WT" PI_BIN="$SESS/fake-pi.sh" "$ROOT/bin/agentlab" run spatial >/tmp/agentlab-pin-ok.log 2>&1 )
+rc=$?
+set -e
+[ $rc -ne 3 ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: rejected an available model (false positive)"; tail -8 /tmp/agentlab-pin-ok.log; }
+grep -q "pinned to an unavailable model" /tmp/agentlab-pin-ok.log && { fail=$((fail+1)); echo "FAILED: false-positive pin warning"; } || pass=$((pass+1))
+
 echo "== status surfaces the last worker error"
 printf 'preflight: ok\nOpenAI API error (400): model_not_found gpt-5.5\n' > "$WT/logs/spatial-20260101T000000Z.log"
 ( cd "$SESS_REPO" && WT_ROOT="$WT" "$ROOT/bin/agentlab" status >/tmp/agentlab-status-log.log 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: status with logs"; }
