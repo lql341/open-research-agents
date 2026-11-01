@@ -39,7 +39,8 @@ agentlab run runtime-io          # one worker: rules -> code -> gate -> commit -
 agentlab run numerics
 
 agentlab status                  # gate + report states changed
-agentlab integrate runtime-io numerics   # merge + integration gate
+agentlab gate runtime-io --worktree      # gate the worker branch, not the base stub
+agentlab integrate runtime-io numerics   # merge + integration gate (base checkout must be clean)
 
 # review the integration branch yourself, then merge
 ```
@@ -107,6 +108,22 @@ run_worker: the work is committed; only the report or the final gate may be miss
 
 That tells you whether to re-run, commit, or just finish the report. A detached
 worker removes its pid file when it exits, so `status` stops showing it.
+
+## 4.0.1 Gate in the right checkout
+
+`agentlab gate <ws>` runs in the **current checkout**. If you are on the base
+branch (`main`/`dev`), that checkout may still contain the unimplemented stub, so
+the gate correctly reports `UNVERIFIED` even after the worker finished.
+
+Use the worker's worktree instead:
+
+```bash
+agentlab gate <ws> --worktree
+```
+
+`agentlab integrate` also refuses a dirty base checkout. The only exception is
+untracked `.agentlab/repro/*.json` audit records, which are committed with the
+integration; a gate run on the base checkout leaves those behind.
 
 ## 4.1 Install, update, uninstall
 

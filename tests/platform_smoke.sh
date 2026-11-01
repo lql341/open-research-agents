@@ -185,6 +185,17 @@ printf 'preflight: ok\nOpenAI API error (400): model_not_found gpt-5.5\n' > "$WT
 grep -q "Recent worker logs" /tmp/agentlab-status-log.log && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: status does not list worker logs"; }
 grep -q "OpenAI API error" /tmp/agentlab-status-log.log && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: status does not surface the worker error"; }
 
+echo "== integrate refuses an untracked file"
+printf 'scratch\n' > "$SESS_REPO/untracked.txt"
+set +e
+( cd "$SESS_REPO" && WT_ROOT="$WT" "$ROOT/bin/agentlab" integrate spatial >/tmp/agentlab-integrate-dirty.log 2>&1 )
+rc=$?
+set -e
+[ $rc -ne 0 ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: integrate accepted an untracked file"; }
+grep -q "working tree is dirty" /tmp/agentlab-integrate-dirty.log && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: no dirty-tree diagnostic"; }
+grep -q -- "--worktree" /tmp/agentlab-integrate-dirty.log && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: no worktree hint"; }
+rm -f "$SESS_REPO/untracked.txt"
+
 echo "----"
 echo "smoke: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

@@ -101,6 +101,7 @@ agentlab - run Pi-based collaborative workstreams in a target repository
       --detach                                run it in the background; follow with tail/status
       --reset-session                         clear that workstream's session history first
   agentlab gate [workstream] [--mode MODE]    run the gate (audit|worker|integration|release)
+      --worktree                              run it in that workstream's worktree
   agentlab integrate <workstream...>          merge worker branches and run the integration gate
   agentlab integrate-audit <workstream...>    merge audit branches (reports/RFC/repro only)
   agentlab pi <workstream>                    open interactive Pi in that workstream's worktree
@@ -199,16 +200,31 @@ case "$cmd" in
 
   gate)
     MODE=""
+    USE_WORKTREE=0
     args=()
     while [ $# -gt 0 ]; do
       case "$1" in
         --mode) MODE="${2:-}"; shift 2 ;;
+        --worktree|-w) USE_WORKTREE=1; shift ;;
         *) args+=("$1"); shift ;;
       esac
     done
     has_agentlab
     with_profile
     [ -n "$MODE" ] && export GATE_MODE="$MODE"
+    root="$(repo_root)"
+    ws="${args[0]:-}"
+    # shellcheck disable=SC1091
+    source "$root/.agentlab/domain.env"
+    wt_root="${WT_ROOT:-$(dirname "$root")/$(basename "$root")-wt}"
+    if [ "$USE_WORKTREE" = "1" ] && [ -n "$ws" ]; then
+      wt="$wt_root/$ws"
+      [ -d "$wt" ] || { echo "agentlab: no worktree for '$ws' at $wt; run: agentlab run $ws" >&2; exit 2; }
+      cd "$wt" || exit 1
+    elif [ -n "$ws" ] && [ -d "$wt_root/$ws" ] && [ "$(git -C "$root" branch --show-current)" = "${BASE_REF:-main}" ]; then
+      echo "agentlab: note: running the gate in the base checkout ($(git -C "$root" branch --show-current))." >&2
+      echo "agentlab: the base checkout may hold the unimplemented stub; use --worktree to gate $ws." >&2
+    fi
     exec "$AGENTLAB/platform/scripts/gate.sh" "${args[@]:-}"
     ;;
 

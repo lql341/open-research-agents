@@ -9,7 +9,18 @@ ROOT="$(git rev-parse --show-toplevel)"; cd "$ROOT"
 source .agentlab/domain.env
 BASE="${BASE_REF:-main}"
 
-git diff --quiet && git diff --cached --quiet || { echo "working tree is dirty"; exit 1; }
+# Audit records are expected to be untracked: a gate run on the base checkout
+# leaves them there. They are committed with the integration. Everything else
+# must be clean.
+DIRTY="$(git status --porcelain | grep -vE '^\?\? \.agentlab/repro/' || true)"
+if [ -n "$DIRTY" ]; then
+  echo "working tree is dirty (tracked or untracked):" >&2
+  printf '%s\n' "$DIRTY" | sed 's/^/  /' >&2
+  echo "commit or remove these before integrating." >&2
+  echo "a gate run on the base checkout leaves .agentlab/repro records; those are allowed." >&2
+  echo "gate in the worker worktree for the real result: agentlab gate <workstream> --worktree" >&2
+  exit 1
+fi
 git fetch --all --prune >/dev/null 2>&1 || true
 
 MODULES="${*:-$MODULES}"

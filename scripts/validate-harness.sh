@@ -128,7 +128,7 @@ grep -q "scope: spatial OK" /tmp/val-run.log && ok "scope check passed" || bad "
 say "3. gate after implementation reports PASS"
 WT="$WT_ROOT/spatial"
 [ -d "$WT" ] || { bad "worker worktree missing at $WT"; exit 1; }
-( cd "$WT" && "$LAB" gate spatial >/tmp/val-gate-after.log 2>&1 )
+( cd "$REPO" && "$LAB" gate spatial --worktree >/tmp/val-gate-after.log 2>&1 )
 rc=$?
 [ $rc -eq 0 ] && ok "exit 0 (PASS)" || { bad "expected 0, got $rc"; tail -12 /tmp/val-gate-after.log; }
 grep -q "observed_order=0.9" /tmp/val-gate-after.log && ok "verification measured order ~1" || bad "no measured order in gate output"
