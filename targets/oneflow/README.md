@@ -101,3 +101,8 @@ test entry point.
 - Never develop on or push to `master`.
 - For upstream-compatible work, set `BASE_REF=upstream/hexin`.
 - Workers do not push or merge; the human integrates and merges.
+
+## Workflow guide
+
+- [Developing OneFLOW with agentlab](../../docs/oneflow-workflow.md) (English)
+- [用 agentlab 开发 OneFLOW](../../docs/oneflow-workflow.zh-CN.md) (中文)

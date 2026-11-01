@@ -24,6 +24,8 @@ tests/fixtures/      平台 smoke test 用的小型 fixture（不是 CFD 产品�
 | [`docs/platform-support.md`](docs/platform-support.md) | 人 | macOS / Linux / Windows 支持矩阵与已知限制 |
 | [`docs/install-manual.md`](docs/install-manual.md) | 人 | 手动安装，逐步验证，含排错和卸载 |
 | [`docs/install-agent.md`](docs/install-agent.md) | coding agent | 可执行安装协议，人类只回答问题 |
+| [`docs/oneflow-workflow.md`](docs/oneflow-workflow.md) | 人 | 用 agentlab 开发 OneFLOW 的完整工作流（English） |
+| [`docs/oneflow-workflow.zh-CN.md`](docs/oneflow-workflow.zh-CN.md) | 人 | 用 agentlab 开发 OneFLOW 的完整工作流（中文） |
 | [`docs/usage.md`](docs/usage.md) | 人 | 日常用法：status / run / gate / integrate / pi |
 | [`platform/docs/governance.md`](platform/docs/governance.md) | 人 | 授权模型与当前强制程度 |
 | [`platform/docs/verification.md`](platform/docs/verification.md) | 人 | 门禁分层与退出码 |
