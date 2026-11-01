@@ -79,7 +79,7 @@ cd val
 git init -b main && git add -A && git commit -m "validation target"
 
 # 确认起点是 UNVERIFIED
-agentlab gate spatial --worktree   # 期望 PASS（在 worker 分支上）
+agentlab gate spatial              # 默认在 worker 工作树里跑，期望 PASS
 # 注意：在主检出跑 agentlab gate spatial 会得到 UNVERIFIED，因为主检出还是桩
 #       并且会在主检出留下 .agentlab/repro 记录；integrate 允许这类记录，
 #       但会在 integration 提交里带上它们
@@ -91,7 +91,7 @@ tail -f /tmp/val-wt/logs/spatial-detached-*.log
 
 # 看结果
 agentlab status
-agentlab gate spatial --worktree   # 期望 exit 0，输出 observed_order≈1
+agentlab gate spatial              # 期望 exit 0，输出 observed_order≈1
 agentlab integrate spatial   # 期望 GATE PASS (mode: integration)
 ```
 

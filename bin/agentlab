@@ -101,7 +101,7 @@ agentlab - run Pi-based collaborative workstreams in a target repository
       --detach                                run it in the background; follow with tail/status
       --reset-session                         clear that workstream's session history first
   agentlab gate [workstream] [--mode MODE]    run the gate (audit|worker|integration|release)
-      --worktree                              run it in that workstream's worktree
+      --here                                  gate the current checkout instead of the worktree
   agentlab integrate <workstream...>          merge worker branches and run the integration gate
   agentlab integrate-audit <workstream...>    merge audit branches (reports/RFC/repro only)
   agentlab pi <workstream>                    open interactive Pi in that workstream's worktree
@@ -200,12 +200,13 @@ case "$cmd" in
 
   gate)
     MODE=""
-    USE_WORKTREE=0
+    USE_HERE=0
     args=()
     while [ $# -gt 0 ]; do
       case "$1" in
         --mode) MODE="${2:-}"; shift 2 ;;
-        --worktree|-w) USE_WORKTREE=1; shift ;;
+        --here) USE_HERE=1; shift ;;
+        --worktree|-w) USE_HERE=0; shift ;;
         *) args+=("$1"); shift ;;
       esac
     done
@@ -217,13 +218,14 @@ case "$cmd" in
     # shellcheck disable=SC1091
     source "$root/.agentlab/domain.env"
     wt_root="${WT_ROOT:-$(dirname "$root")/$(basename "$root")-wt}"
-    if [ "$USE_WORKTREE" = "1" ] && [ -n "$ws" ]; then
-      wt="$wt_root/$ws"
-      [ -d "$wt" ] || { echo "agentlab: no worktree for '$ws' at $wt; run: agentlab run $ws" >&2; exit 2; }
+    wt="$wt_root/$ws"
+    # The useful default is the worker's worktree. The base checkout usually
+    # still holds the stub, and gating it produces a misleading UNVERIFIED.
+    if [ -n "$ws" ] && [ -d "$wt" ] && [ "$USE_HERE" != "1" ]; then
+      echo "agentlab: gating in the $ws worktree (use --here for the current checkout)" >&2
       cd "$wt" || exit 1
-    elif [ -n "$ws" ] && [ -d "$wt_root/$ws" ] && [ "$(git -C "$root" branch --show-current)" = "${BASE_REF:-main}" ]; then
-      echo "agentlab: note: running the gate in the base checkout ($(git -C "$root" branch --show-current))." >&2
-      echo "agentlab: the base checkout may hold the unimplemented stub; use --worktree to gate $ws." >&2
+    elif [ -n "$ws" ] && [ -d "$wt" ] && [ "$USE_HERE" = "1" ]; then
+      echo "agentlab: gating the current checkout ($(git -C "$root" branch --show-current)); this is not the $ws worktree." >&2
     fi
     exec "$AGENTLAB/platform/scripts/gate.sh" "${args[@]:-}"
     ;;

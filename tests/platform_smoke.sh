@@ -64,6 +64,16 @@ set -e
 grep -q "OUT OF SCOPE: core/hack.txt" /tmp/agentlab-scope.log && pass=$((pass+1)) || { fail=$((fail+1)); echo "missing out-of-scope diagnostic"; }
 rm -f core/hack.txt
 
+echo "== generated repro records do not fail scope"
+mkdir -p .agentlab/repro
+printf '{}\n' > .agentlab/repro/spatial-manual.json
+set +e
+"$ROOT/platform/scripts/scope_check.sh" spatial main >/tmp/agentlab-scope-repro.log 2>&1
+rc=$?
+set -e
+[ $rc -eq 0 ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: untracked repro record failed scope"; cat /tmp/agentlab-scope-repro.log; }
+rm -f .agentlab/repro/spatial-manual.json
+
 echo "== agentlab CLI"
 if "$ROOT/bin/agentlab" version >/tmp/agentlab-version.log 2>&1; then pass=$((pass+1)); else fail=$((fail+1)); echo "FAILED: agentlab version"; cat /tmp/agentlab-version.log; fi
 if "$ROOT/bin/agentlab" config >/tmp/agentlab-config.log 2>&1; then pass=$((pass+1)); else fail=$((fail+1)); echo "FAILED: agentlab config"; fi

@@ -16,7 +16,9 @@ trap 'rm -f "$tmp"' EXIT
 {
   git diff --name-only "$BASE"...HEAD
   git diff --name-only
-  git ls-files --others --exclude-standard
+  # Untracked repro records are written by the gate itself; they are audit
+  # artifacts, not source edits. Committed ones are still checked above.
+  git ls-files --others --exclude-standard | grep -vE '^\.agentlab/repro/' || true
 } | sort -u > "$tmp"
 
 bad=0

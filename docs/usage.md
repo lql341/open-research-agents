@@ -39,7 +39,7 @@ agentlab run runtime-io          # one worker: rules -> code -> gate -> commit -
 agentlab run numerics
 
 agentlab status                  # gate + report states changed
-agentlab gate runtime-io --worktree      # gate the worker branch, not the base stub
+agentlab gate runtime-io                 # gates the worker worktree by default
 agentlab integrate runtime-io numerics   # merge + integration gate (base checkout must be clean)
 
 # review the integration branch yourself, then merge
@@ -83,6 +83,9 @@ exactly what the worker saw.
 
 ## 4.0 Long runs and interruptions
 
+`agentlab status` shows `WORKTREE=repro` when the only uncommitted files are
+generated `.agentlab/repro` records; `clean` means nothing is uncommitted.
+
 A worker with `thinking=high` can take many minutes. Do not hold the terminal:
 
 ```bash
@@ -115,10 +118,11 @@ worker removes its pid file when it exits, so `status` stops showing it.
 branch (`main`/`dev`), that checkout may still contain the unimplemented stub, so
 the gate correctly reports `UNVERIFIED` even after the worker finished.
 
-Use the worker's worktree instead:
+`agentlab gate <ws>` uses the worker's worktree by default. To force the current
+checkout, use `--here` (this is rarely what you want outside the worktree):
 
 ```bash
-agentlab gate <ws> --worktree
+agentlab gate <ws> --here
 ```
 
 `agentlab integrate` also refuses a dirty base checkout. The only exception is

@@ -51,8 +51,8 @@ def read_env(path: Path) -> dict[str, str]:
     return values
 
 
-def latest_gate(repro_dir: Path, workstream: str, root: Path, ref: str | None) -> dict | None:
-    """Newest repro record for a workstream, from its branch first, then the working tree."""
+def latest_gate(repro_dirs: list[Path], workstream: str, root: Path, ref: str | None) -> dict | None:
+    """Newest repro record across the branch, the main checkout and the worktree."""
     prefix = f".agentlab/repro/{workstream}-"
     names: list[str] = []
     if ref:
@@ -62,12 +62,21 @@ def latest_gate(repro_dir: Path, workstream: str, root: Path, ref: str | None) -
         )
         if out.returncode == 0:
             names = [line.strip() for line in out.stdout.splitlines() if line.startswith(prefix)]
-    local = sorted(repro_dir.glob(f"{workstream}-*.json")) if repro_dir.is_dir() else []
-    names.extend(str(p.relative_to(root)) for p in local)
-    for rel in sorted(set(names), reverse=True):
-        text = read_from_ref(root, ref, rel) if ref else None
+    for directory in repro_dirs:
+        if not directory.is_dir():
+            continue
+        for path in directory.glob(f"{workstream}-*.json"):
+            try:
+                names.append(str(path.resolve().relative_to(root.resolve())))
+            except ValueError:
+                # A worktree lives outside the main checkout; key it by filename.
+                names.append(str(path))
+    # Names may be absolute for worktrees; sort by basename (timestamped).
+    names = sorted(set(names), key=lambda n: Path(n).name)
+    for rel in reversed(names):
+        text = read_from_ref(root, ref, rel) if ref and not Path(rel).is_absolute() else None
         if text is None:
-            path = root / rel
+            path = Path(rel) if Path(rel).is_absolute() else root / rel
             text = path.read_text(encoding="utf-8") if path.is_file() else None
         if not text:
             continue
@@ -221,12 +230,18 @@ def main(argv: list[str]) -> int:
             path = reports / f"{ws}.md"
             text = path.read_text(encoding="utf-8") if path.is_file() else None
         status, meta = report_status(text)
-        gate = latest_gate(repro, ws, root, branch if has_branch else None)
         wt = wt_root / ws
+        gate = latest_gate([repro, wt / ".agentlab" / "repro"], ws, root,
+                           branch if has_branch else None)
         wt_state = "-"
         if wt.is_dir():
-            dirty = bool(git(wt, "status", "--porcelain"))
-            wt_state = "dirty" if dirty else "clean"
+            lines = [line for line in git(wt, "status", "--porcelain").splitlines() if line.strip()]
+            if not lines:
+                wt_state = "clean"
+            elif all(line.startswith("?? .agentlab/repro/") for line in lines):
+                wt_state = "repro"
+            else:
+                wt_state = "dirty"
         ahead = git(root, "rev-list", "--count", f"{base}..{branch}") if has_branch else "0"
         log = recent_log(wt_root, ws)
         detached = detached_state(wt_root, ws)
