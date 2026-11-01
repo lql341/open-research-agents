@@ -1,42 +1,51 @@
-# Agent 安装协议
+**English** | [中文](install-agent.zh-CN.md)
 
-**读者：一个 coding agent（Pi、Codex、Claude Code 或同类）。人类只需要回答问题和批准。**
+# Agent Installation Protocol
 
-这份文档是可执行协议。按顺序做，每一步都要运行验证命令并贴出真实输出。
-不允许跳步、不允许假设、不允许把没跑过的东西写成通过。
+**Audience: a coding agent (Pi, Codex, Claude Code, or similar). The human only
+answers questions and approves actions.**
 
----
-
-## 任务
-
-把 `open-research-agents` 装到这台机器上，并接到一个目标仓库，让 `agentlab` 命令可用，
-且**不修改人类日常使用的 Pi 配置**。
-
-## 硬约束
-
-1. **不改 `~/.pi/agent`。** 那是人类日常 Pi 的配置目录。worker 用独立的
-   `PI_CODING_AGENT_DIR`。
-2. **不改目标仓库的源码、构建脚本、测试架构。** 只允许创建/修改 `.agentlab/`
-   和（仅在不存在时）仓库根的 `AGENTS.md` 指针。
-3. **不执行 `pi /login`。** 登录必须由人类完成，你只负责准备目录并提示命令。
-4. **不装全局软件**，除非人类明确同意。检查已有工具优先。
-5. **不执行 `git push`、`git merge` 到受保护分支、`sbatch`/`srun`。**
-6. **不提交目标仓库里不属于 `.agentlab/` 的改动。** 提交前用
-   `git status --short` 逐行确认。
-7. **一次只问一个人一个问题**，给出推荐项和理由，不要一次抛出清单。
-8. 任何一步失败就停下，报告失败的命令和输出，不要绕过去继续。
-
-## 非目标
-
-- 不实现新功能，不改平台代码，不优化性能。
-- 不调整目标仓库的测试架构或 CMake 结构。
-- 不配置集群、容器、CI。
+This document is an executable protocol. Follow it in order. Run every
+verification command and record its real output. Do not skip steps, assume
+results, or report an unexecuted test as passing.
 
 ---
 
-## 第 0 步：勘察（只读）
+## Objective
 
-先收集事实，不要改任何东西：
+Install `open-research-agents` on this machine, attach a target pack to one
+repository, and make the `agentlab` command available **without modifying the
+human's daily Pi configuration**.
+
+## Hard constraints
+
+1. **Do not modify `~/.pi/agent`.** Workers use a separate
+   `PI_CODING_AGENT_DIR`.
+2. **Do not modify the target repository's source, build scripts, or test
+   architecture.** Only create or modify `.agentlab/` and, if absent, the root
+   `AGENTS.md` pointer.
+3. **Do not run `pi /login`.** Authentication belongs to the human. Prepare the
+   directory and provide the command.
+4. **Do not install global software** without explicit human approval. Check for
+   existing tools first.
+5. **Do not run `git push`, merge protected branches, or submit `sbatch`/`srun`.**
+6. **Do not commit files outside `.agentlab/`** unless the human explicitly
+   approves each file. Inspect `git status --short` before committing.
+7. **Ask one concrete question at a time.** Provide a recommendation and reason.
+8. **Stop on failure.** Report the command and its output. Do not bypass the
+   failure and continue.
+
+## Non-goals
+
+- Do not implement features, modify the platform, or optimize performance.
+- Do not restructure the target repository's tests or CMake layout.
+- Do not configure clusters, containers, or CI.
+
+---
+
+## Step 0: Reconnaissance (read-only)
+
+Collect facts without changing anything:
 
 ```bash
 pwd
@@ -53,7 +62,7 @@ ls ~/.pi 2>/dev/null
 ls ~/.config/agentlab 2>/dev/null || echo "no agentlab config"
 ```
 
-输出一份简短的勘察结论：
+Produce a short summary:
 
 ```text
 Found:
@@ -65,61 +74,64 @@ Found:
 Blocking issues : <none | list>
 ```
 
-如果 `pi` 缺失，停下来问人类要不要安装，不要自己装。
+If `pi` is missing, stop and ask the human whether to install it. Do not install
+it yourself.
 
-### 平台判定
+### Platform check
 
-根据 `uname -s` 的输出来决定：
+Use `uname -s`:
 
-| 输出 | 处理 |
+| Output | Action |
 |---|---|
-| `Darwin` / `Linux` | 继续 |
-| `MINGW*` / `MSYS*` / `CYGWIN*` | 继续，但在报告里注明 Windows via Git Bash |
-| 其它 | 停下，报告“未验证的平台”，不要尝试改脚本适配 |
+| `Darwin` / `Linux` | Continue |
+| `MINGW*` / `MSYS*` / `CYGWIN*` | Continue; report "Windows via Git Bash" |
+| Other | Stop and report an unverified platform. Do not modify scripts to fit it |
 
-如果当前是 Windows 且没有 bash（说明你在 PowerShell 里），
-**停下**并告诉人类：请在 Git Bash 或 WSL 里重跑本协议。
-
----
-
-## 第 1 步：确认两个路径
-
-问人类一个问题（用 `ask_user_question` 或直接提问）：
-
-> `open-research-agents` 在哪里，目标仓库是哪个？
-
-推荐项：平台仓库是当前 clone；目标仓库是已经存在的、有 `AGENTS.md` 的那个。
-
-不要猜。如果人类只给了一个，另一个也要问。
+On Windows without Bash (PowerShell), stop and ask the human to rerun this
+protocol in Git Bash or WSL.
 
 ---
 
-## 第 2 步：准备 worker 的 Pi 配置目录
+## Step 1: Confirm two paths
+
+Ask one question:
+
+> Where is `open-research-agents`, and which repository is the target?
+
+Recommendation: the platform repository is the current clone; the target is an
+existing repository with its own `AGENTS.md`.
+
+Do not guess. If only one path is provided, ask for the other.
+
+---
+
+## Step 2: Prepare the worker Pi profile
 
 ```bash
 mkdir -p ~/.pi/agentlab
 ls -A ~/.pi/agentlab
 ```
 
-如果目录里有 `extensions/`、`skills/`、`mcp.json`，**停下来告诉人类**：
-这些会加载进每个 worker，建议清空。
+If the directory contains `extensions/`, `skills/`, or `mcp.json`, stop and tell
+the human: these resources will load into every worker. Recommend clearing them.
 
-如果目录里没有 `auth.json` 或 `models.json`，把登录这一步交给人类：
+If the directory has no `auth.json` or `models.json`, ask the human to
+authenticate:
 
-> 请在终端运行下面这条命令并完成登录，完成后告诉我：
-> `PI_CODING_AGENT_DIR=~/.pi/agentlab pi /login`
+> Run `PI_CODING_AGENT_DIR=~/.pi/agentlab pi /login` in your terminal and tell me
+> when it completes.
 
-人类确认后验证：
+After confirmation:
 
 ```bash
 PI_CODING_AGENT_DIR=~/.pi/agentlab pi --list-models | head -5
 ```
 
-必须能看到模型列表。看不到就停。
+The command must list at least one model. Otherwise, stop.
 
 ---
 
-## 第 3 步：写 CLI 配置
+## Step 3: Write the CLI configuration
 
 ```bash
 mkdir -p ~/.config/agentlab
@@ -127,17 +139,18 @@ mkdir -p ~/.config/agentlab
   cp <platform-repo>/examples/agentlab.config.toml ~/.config/agentlab/config.toml
 ```
 
-确认 `profile` 指向 `~/.pi/agentlab`：读文件，不要盲改。
+Confirm the profile path by reading the file:
 
 ```bash
 grep -E '^(bin|profile|args)' ~/.config/agentlab/config.toml
 ```
 
-如果人类之前指定过模型，就在 `[pi]` 段写 `args = "--model <id>"`。
+If the human requested a specific model, add it to the `[pi]` section as
+`args = "--model <id>"`.
 
 ---
 
-## 第 4 步：装 CLI 到 PATH
+## Step 4: Add the CLI to PATH
 
 ```bash
 mkdir -p ~/.local/bin
@@ -146,8 +159,8 @@ command -v agentlab
 agentlab version
 ```
 
-`command -v agentlab` 无输出时，说明 `~/.local/bin` 不在 PATH：
-**问人类**要不要把这行加到 shell 配置，不要自己改：
+If `command -v agentlab` prints nothing, `~/.local/bin` is not on `PATH`. Ask the
+human before modifying a shell profile:
 
 ```sh
 export PATH="$HOME/.local/bin:$PATH"
@@ -155,28 +168,28 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ---
 
-## 第 5 步：自检
+## Step 5: Self-check
 
 ```bash
 cd <platform-repo>
 agentlab doctor
 ```
 
-要求 `doctor: PASS`。有 `warn` 就逐条解释给人类，不要忽略。
+Require `doctor: PASS`. Explain each warning; do not ignore it.
 
-同时跑平台自测：
+Run the platform tests:
 
 ```bash
 bash tests/platform_smoke.sh
 ```
 
-要求 `smoke: N passed, 0 failed`。失败就停，把失败项贴出来。
+Require `smoke: N passed, 0 failed`. Stop and report failures.
 
 ---
 
-## 第 6 步：安装到目标仓库
+## Step 6: Install into the target repository
 
-先看目标仓库现状：
+Inspect the target first:
 
 ```bash
 cd <target-repo>
@@ -185,41 +198,43 @@ git status --short
 ls .agentlab 2>/dev/null && echo "already installed" || echo "not installed"
 ```
 
-如果已经装过，**不要覆盖**。`install_target.sh` 不会覆盖已有文件，可以安全重跑：
+If the pack already exists, do not overwrite it. `install_target.sh` does not
+overwrite existing files, so rerunning is safe:
 
 ```bash
 agentlab install <domain> <target> <target-repo>
 ```
 
-当前可用的组合：
+Available packs are documented in `targets/`. For the first example:
 
-| domain | target | 说明 |
+| Domain | Target | Notes |
 |---|---|---|
-| `cfd` | `oneflow` | OneFLOW：只读审计模式，两个 workstream `runtime-io` / `numerics` |
+| `cfd` | `oneflow` | OneFLOW, audit mode, workstreams `runtime-io` and `numerics` |
 
-装完立刻检查，确认只增加了预期文件：
+Inspect the changes:
 
 ```bash
 cd <target-repo>
 git status --short
 ```
 
-期望只有 `.agentlab/`（以及可能新建的 `AGENTS.md`）。**出现其它路径就停下报告。**
+Only `.agentlab/` and, if newly created, `AGENTS.md` should appear. Stop and
+report any other path.
 
-然后校对 base ref：
+Check the base ref:
 
 ```bash
 git branch --show-current
 grep BASE_REF .agentlab/target.env
 ```
 
-不一致就改成真实分支，并在报告里说明改了什么。
+If they differ, update `target.env` and record the change.
 
 ---
 
-## 第 7 步：提交（需要人类同意）
+## Step 7: Commit (requires human approval)
 
-先给人类看将要提交的内容：
+Show the human what will be committed:
 
 ```bash
 cd <target-repo>
@@ -227,64 +242,68 @@ git status --short
 git diff --stat
 ```
 
-问一个问题：
+Ask one question:
 
-> 是否提交 `.agentlab/` 到当前分支？
+> May I commit `.agentlab/` to the current branch?
 
-推荐：是。理由：`scope_check` 从 base ref 读取 scope，不提交就无法生效。
+Recommendation: yes. `scope_check` reads the scope from the base ref; an
+uncommitted pack cannot enforce anything.
 
-批准后：
+After approval:
 
 ```bash
 git add .agentlab
 [ -f AGENTS.md ] && git add AGENTS.md
-git status --short          # 再次确认没有多余文件
-git commit -m "agentlab: add collaboration target pack"
+git status --short
+git commit -m "agentlab: add <target> pack"
 ```
 
-**不要 push。**
+Do not push.
 
 ---
 
-## 第 8 步：验证可用
+## Step 8: Verify availability
 
 ```bash
 cd <target-repo>
 agentlab status
-agentlab preflight <workstream>
+agentlab preflight <ws>
 ```
 
-`status` 要打印 workstream 表；`preflight` 在 `audit` 模式下应该 PASS。
+`status` must print the workstream table. `preflight` must pass in `audit` mode.
 
-不要在这一步跑 `agentlab run`——那会真的调用 Pi。除非人类明确要求。
+Do not run `agentlab run` here unless the human explicitly requests it; it calls
+the model and consumes tokens.
 
 ---
 
-## 第 8.5 步：维护（只在人类要求时执行）
+## Step 8.5: Maintenance (only when requested)
 
-| 人类要求 | 你执行 | 注意 |
+| Request | Command | Notes |
 |---|---|---|
-| 更新 | `cd <platform-repo> && agentlab update` | 先确认平台仓库工作区干净；有 `.agentlab/AGENTS.md.new` 时**不要**自动覆盖，把 diff 给人看 |
-| 更新某个目标仓库 | `cd <target-repo> && agentlab update` | 只补新增文件；提交前 `git status --short` 确认只有 `.agentlab/` |
-| 卸载 | `cd <target-repo> && agentlab uninstall` | 需要人类确认；有工作树时会拒绝，先 `agentlab clean` |
-| 清理工作树 | `agentlab clean <ws...>` | 只删 worktree，保留分支和日志 |
+| Update the tool and pack | `cd <platform-repo> && agentlab update` | Confirm the platform tree is clean; if `.agentlab/AGENTS.md.new` appears, show the diff and do not overwrite automatically |
+| Update one target | `cd <target-repo> && agentlab update` | Adds only new files; inspect `git status` before committing |
+| Uninstall | `cd <target-repo> && agentlab uninstall` | Requires human confirmation; refuses while worker worktrees exist |
+| Clean worktrees | `agentlab clean <ws...>` | Removes worktrees, keeps branches and logs |
 
-不要自己决定“顺便清理一下”。卸载会删掉报告和 RFC。
+Do not perform unrequested cleanup. Uninstall removes reports and RFCs.
 
-## 第 9 步：交付报告
+---
 
-严格按这个格式输出，不要加别的章节：
+## Step 9: Delivery report
+
+Use exactly this structure:
 
 ```text
 Summary
-  <一句话说明装了什么，装在哪>
+  <one sentence: what was installed and where>
 
 Installed
   platform repo   : <path> @ <commit>
   target repo     : <path> @ <branch> <commit>
-  domain/target   : cfd / oneflow
+  domain/target   : <domain> / <target>
   mode            : audit
-  workstreams     : runtime-io numerics
+  workstreams     : <list>
   cli             : ~/.local/bin/agentlab
   worker profile  : ~/.pi/agentlab
 
@@ -295,46 +314,46 @@ Verification (real output only)
   agentlab preflight     : <PASS/FAIL>
 
 Files changed
-  <列出 .agentlab/ 下新增的文件，或 "git show --stat" 摘要>
+  <list of new files under .agentlab/, or a git show --stat summary>
 
 Not changed
   ~/.pi/agent            : untouched
   target source/build    : untouched
 
 Known risks
-  <例如：worker 有 bash 权限，能读工作树之外的路径；这不是沙箱>
+  <for example: a worker with shell access can read paths outside the worktree>
 
 Pending human decisions
-  <例如：先跑哪个 workstream；是否切 worker 模式>
+  <for example: which workstream to run first; whether to switch to worker mode>
 
 Next step
-  <一条最具体的下一步命令>
+  <one concrete command>
 ```
 
 ---
 
-## 失败时的行为
+## Failure handling
 
-| 失败点 | 你要做的 |
+| Failure | Action |
 |---|---|
-| `pi` 不存在 | 停下，问人类是否安装；不要自己装 |
-| 没有模型可用 | 停下，让人类完成 `pi /login` |
-| `doctor` FAIL | 贴出失败项，按 `docs/install-manual.md` 第 9 节排查 |
-| `smoke` 有失败 | 停下报告，不要修改平台代码去"修好"它 |
-| `git status` 出现 `.agentlab/` 之外的文件 | 停下，`git checkout -- <file>` 恢复后报告 |
-| base ref 不存在 | 改 `.agentlab/target.env` 并说明；不要改 git 分支 |
-| 人类要求的操作超出这份协议 | 拒绝，并说明该操作属于人工决策 |
+| `pi` is missing | Stop; ask the human whether to install it. Do not install it yourself |
+| No model is available | Stop; ask the human to complete `pi /login` |
+| `doctor` fails | Report the failing item and follow the troubleshooting section in `install-manual.md` |
+| `smoke` fails | Stop and report. Do not modify platform code to make it pass |
+| `git status` shows files outside `.agentlab/` | Stop; restore them with `git checkout -- <file>` and report |
+| The base ref does not exist | Update `.agentlab/target.env`; do not change Git branches |
+| The human requests work outside this protocol | Refuse and identify it as a human decision |
 
 ---
 
-## 复述给人类的最小命令集
+## Minimum command set for the human
 
-装完之后，人类日常只需要这五条：
+After installation, the human normally needs only:
 
 ```bash
-agentlab doctor        # 环境是否正常
-agentlab status        # 现在卡在谁身上
-agentlab run <ws>                  # 派活
-agentlab integrate <ws...>         # 集成
-agentlab pi <ws>                   # 排查
+agentlab doctor
+agentlab status
+agentlab run <ws>
+agentlab integrate <ws...>
+agentlab pi <ws>
 ```

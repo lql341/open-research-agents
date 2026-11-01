@@ -1,32 +1,35 @@
-# 平台支持
+**English** | [中文](platform-support.zh-CN.md)
 
-结论先说：**macOS 和 Linux 原生支持；Windows 需要 Git Bash 或 WSL；原生 PowerShell 不支持。**
+# Platform Support
 
-## 支持矩阵
+Summary: **macOS and Linux are supported natively. Windows requires Git Bash or
+WSL. Native PowerShell is not supported.**
 
-| 平台 | 状态 | 说明 |
+## Support matrix
+
+| Platform | Status | Notes |
 |---|---|---|
-| macOS（Intel / Apple Silicon） | ✅ 支持 | 使用系统自带 `/bin/bash` 3.2，脚本已在该版本验证 |
-| Ubuntu / Debian | ✅ 支持 | bash 5.x，无需额外处理 |
-| 其它 Linux（RHEL / Rocky / Arch / Alpine+glibc） | ✅ 支持 | 只需 `bash`、`git`、`python`、`coreutils` |
-| WSL1 / WSL2 | ✅ 支持 | 等同 Linux；文件放在 WSL 文件系统里更快 |
-| Windows + Git Bash（MSYS2） | ⚠️ 可用 | 见下方限制 |
-| Windows + PowerShell / cmd | ❌ 不支持 | 没有 bash；需要 Git Bash 或 WSL |
-| FreeBSD / OpenBSD | ❔ 未验证 | 脚本不用 GNU 专属参数，理论上可行，未测试 |
-| Nix / Guix | ⚠️ 可用 | 需要把 `bash`、`python3`、`git` 加入环境 |
+| macOS (Intel / Apple Silicon) | Supported | Uses the system `/bin/bash` 3.2; all scripts are validated on that version |
+| Ubuntu / Debian | Supported | Bash 5.x; no additional shell handling required |
+| Other Linux (RHEL, Rocky, Arch, Alpine with glibc) | Supported | Requires `bash`, `git`, `python`, and `coreutils` |
+| WSL1 / WSL2 | Supported | Equivalent to Linux; keep repositories in the WSL filesystem |
+| Windows with Git Bash (MSYS2) | Supported with limitations | See the Windows section |
+| Windows PowerShell / cmd | Not supported | No Bash; use Git Bash or WSL |
+| FreeBSD / OpenBSD | Not verified | The scripts avoid GNU-only flags; not tested |
+| Nix / Guix | Supported with caveats | `bash`, `python3`, and `git` must be available in the environment |
 
-## 依赖
+## Dependencies
 
-| 依赖 | 用途 | 缺失后果 |
+| Dependency | Used by | If missing |
 |---|---|---|
-| `bash` ≥ 3.2 | 所有平台脚本 | 无法运行 |
-| `git` ≥ 2.32 | worktree、scope、集成 | 无法运行 |
-| `python3` 或 `python` | `agentlab status`、repro 记录 | `status` 报错；其余命令可用 |
-| `coreutils`（`find`/`sed`/`tr`/`cmp`/`diff`/`mktemp`） | 脚本基础设施 | macOS 自带，Linux 自带，Git Bash 自带 |
-| `pi` ≥ 1.x | worker | 只能 `install` / `status` / `uninstall` |
-| 目标仓库自己的构建工具（`cmake`、`c++` 等） | `worker` / `integration` gate | `audit` 模式不受影响 |
+| `bash` >= 3.2 | All platform scripts | Cannot run |
+| `git` >= 2.32 | Worktrees, scope, integration | Cannot run |
+| `python3` or `python` | `agentlab status`, repro records | `status` fails; other commands still work |
+| `coreutils` (`find`, `sed`, `tr`, `cmp`, `diff`, `mktemp`) | Script infrastructure | Included on macOS, Linux, and Git Bash |
+| `pi` >= 1.x | Workers | Only `install`, `status`, and `uninstall` work |
+| Target build tools (`cmake`, `c++`, ...) | `worker` and `integration` gates | `audit` mode is unaffected |
 
-`agentlab doctor` 会逐项检查并打印它实际看到的内容。
+`agentlab doctor` checks each item and prints the observed version.
 
 ## macOS
 
@@ -34,7 +37,7 @@
 agentlab doctor
 ```
 
-期望：
+Expected:
 
 ```text
 host
@@ -42,24 +45,24 @@ host
   ok    macOS 14.x
 ```
 
-不需要 Homebrew bash。脚本刻意避开了 bash 4+ 的构造（`declare -A`、
-`${var^^}`、`mapfile`），也没有用 GNU 专属参数（`sed -i` 无后缀、
-`readlink -f`、`date -d`、`grep -P`）。
+Homebrew Bash is not required. The scripts avoid Bash 4+ constructs
+(`declare -A`, `${var^^}`, `mapfile`) and GNU-only flags (`sed -i` without a
+suffix, `readlink -f`, `date -d`, `grep -P`).
 
-## Linux（Ubuntu / Debian）
+## Linux (Ubuntu / Debian)
 
 ```bash
 sudo apt-get install -y git python3
 ```
 
-其余依赖（`bash`、`coreutils`）都在基础系统里。
+`bash` and `coreutils` are part of the base system.
 
 ## Windows
 
-### 方案 A：Git Bash（推荐，改动最小）
+### Option A: Git Bash
 
-1. 安装 [Git for Windows](https://git-scm.com/download/win)，它带 Git Bash。
-2. 在 Git Bash 里运行：
+1. Install [Git for Windows](https://git-scm.com/download/win), which includes Git Bash.
+2. Run from Git Bash:
 
 ```bash
 git clone <this-repo> open-research-agents
@@ -67,19 +70,20 @@ cd open-research-agents
 ./bin/agentlab doctor
 ```
 
-`doctor` 会明确提示：
+`doctor` reports:
 
 ```text
 warn  Windows via x86_64-pc-msys (Git Bash/MSYS); native PowerShell is not supported, use Git Bash or WSL
 ```
 
-限制：
+Limitations:
 
-- 路径要在 Git Bash 的 POSIX 形式下用（`/c/Users/...`），不要写 `C:\...`；
-- 目标仓库也必须在同一套路径体系下，否则 `git worktree` 会建到奇怪的位置；
-- `agentlab cleanup` / `uninstall` 的 `rm -rf` 走 MSYS 层，慢但正确。
+- Use POSIX paths (`/c/Users/...`), not `C:\...`.
+- The target repository must use the same path convention; otherwise `git worktree`
+  creates unexpected directories.
+- `agentlab clean` and `uninstall` use MSYS `rm -rf`, which is slower but correct.
 
-### 方案 B：WSL（推荐用于认真跑 worker）
+### Option B: WSL
 
 ```bash
 wsl
@@ -88,53 +92,57 @@ git clone <this-repo> ~/open-research-agents
 ~/open-research-agents/bin/agentlab doctor
 ```
 
-要点：
+Guidelines:
 
-- 目标仓库放在 WSL 文件系统（`~/...`），不要放 `/mnt/c/...`，否则 git 和编译都慢；
-- 在 WSL 里安装并登录 `pi`：
-  `mkdir -p ~/.pi/agentlab && PI_CODING_AGENT_DIR=~/.pi/agentlab pi /login`
-- Windows 侧的 OneFLOW 检出和 WSL 侧的检出是两个仓库；不要让两边同时改同一份文件。
+- Keep the target repository in the WSL filesystem (`~/...`), not `/mnt/c/...`.
+- Install and authenticate Pi inside WSL:
+  `mkdir -p ~/.pi/agentlab && PI_CODING_AGENT_DIR=~/.pi/agentlab pi /login`.
+- A Windows checkout and a WSL checkout are separate repositories. Do not edit the
+  same files from both sides.
 
-### 原生 PowerShell 为什么不支持
+### Why native PowerShell is not supported
 
-`agentlab` 是 bash 脚本集合（worktree 管理、scope glob、gate 串联、`trap` 清理）。
-在 PowerShell 里重写等于第二套实现，两边会漂移。需要 Windows 原生时，正确做法是：
-**把 worker 跑在 WSL 或 Git Bash 里**，而不是移植脚本。
+`agentlab` is a collection of Bash scripts: worktree management, scope globs, gate
+orchestration, `trap` cleanup, and exit-code semantics. A PowerShell port would be
+a second implementation and would inevitably diverge. On native Windows, run
+workers inside Git Bash or WSL.
 
-## Windows 上的 worker 命令拦截
+## Command guard on Windows
 
-Pi 在原生 Windows 上可以用 `powershell` 工具而不是 `bash`。`guard.ts` 已经同时挂在
-`bash` 和 `powershell` 两个工具上，所以
+Pi on native Windows can expose the `powershell` tool instead of `bash`.
+`platform/extensions/guard.ts` is attached to both tools, so
 
 ```text
 git push / git merge / gh pr merge / sbatch / srun
 ```
 
-在两种环境下都会被拦。
+are blocked in both environments.
 
-## 已知的平台差异
+## Known platform differences
 
-| 项目 | macOS / Linux | Windows（Git Bash） |
+| Item | macOS / Linux | Windows (Git Bash) |
 |---|---|---|
-| `agentlab pi` 打开交互式 Pi | 正常 | 正常，但终端能力取决于 Git Bash |
-| 文件锁 | 无 | Windows 上 `rm -rf` 偶尔因文件占用失败，重试即可 |
-| repro 记录的硬件字段 | 有 CPU 型号 | `wmic` 可能缺失，字段为空 |
-| 集群作业 | 被 guard 拦截 | 同左 |
+| `agentlab pi` interactive session | Supported | Supported; terminal capabilities depend on Git Bash |
+| File locks | None | `rm -rf` may fail while a file is in use; retry |
+| Repro hardware fields | CPU model available | `wmic` may be absent; fields may be empty |
+| Cluster jobs | Blocked by the guard | Blocked by the guard |
 
-## 兼容性验证方式
+## Compatibility checks
 
 ```bash
-# 全部脚本在 bash 3.2 下的语法检查
+# Syntax check under Bash 3.2
 for f in bin/agentlab scripts/*.sh platform/scripts/*.sh; do /bin/bash -n "$f"; done
 
-# 完整平台自测（不调用模型、不联网）
+# Full platform test (no model calls, no network)
 bash tests/platform_smoke.sh
 ```
 
-当前：**33 项通过，0 失败**，macOS `/bin/bash` 3.2 与 bash 5.x 均验证过。
+Current status: **48 smoke checks and 27 harness-validation checks pass**, on both
+macOS `/bin/bash` 3.2 and Bash 5.x.
 
-## 如果某个平台跑不起来
+## If a platform does not work
 
-1. 运行 `agentlab doctor`，把输出贴出来；
-2. 运行 `bash tests/platform_smoke.sh`，看是哪一项失败；
-3. 不要改脚本去“适配”单台机器——先把输出记录下来，这通常是缺少依赖而不是代码问题。
+1. Run `agentlab doctor` and record its output.
+2. Run `bash tests/platform_smoke.sh` and identify the failing check.
+3. Do not modify scripts to accommodate a single machine before identifying the
+   missing dependency.

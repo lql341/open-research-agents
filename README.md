@@ -1,154 +1,157 @@
+**English** | [中文](README.zh-CN.md)
+
 # Open Research Agents
 
-在 Pi 之上的“有边界的多智能体研发系统”。平台本身是通用的；CFD 是第一个
-domain，OneFLOW 是第一个 target。
+A bounded multi-agent development system built on Pi. The platform is generic;
+CFD is the first domain and OneFLOW is the first target.
 
-当前状态：**v0.1 scaffold**。平台脚本是 Bash（兼容 macOS 自带 3.2）。
-支持 macOS、Linux、WSL、Windows Git Bash；原生 PowerShell 不支持，详见
-[`docs/platform-support.md`](docs/platform-support.md)。
+Status: **v0.1 scaffold**. The platform scripts are Bash and run on the system
+Bash 3.2 shipped with macOS. macOS, Linux, WSL, and Windows Git Bash are
+supported; native PowerShell is not. See
+[`docs/platform-support.md`](docs/platform-support.md).
 
-## 分层
+## Layers
 
 ```text
-platform/               通用内核：规则、preflight、scope、gate、worker 启动、集成、复现快照
-domains/<domain>/       可复用的领域包：契约、scope、任务、验证算例、复现字段
-targets/<target>/       单个仓库的覆盖层：真实路径、分支、命令、workstream
-examples/validation/    可复制的验证用目标仓库（不是产品代码）
-tests/fixtures/         平台 smoke test 用的小型 fixture
+platform/               generic core: rules, preflight, scope, gate, workers, integration, evidence
+domains/<domain>/       reusable domain pack: contracts, scope, tasks, verification, repro fields
+targets/<target>/       one repository: real paths, base branch, commands, workstreams
+examples/validation/    a copyable validation target (not product code)
+tests/fixtures/         small fixture used by the platform smoke test
 ```
 
-求解器代码不在本仓库。一个 domain + target 通过 `agentlab install` 装进目标仓库的
-`.agentlab/`。平台内核不包含任何具体仓库的路径、分支或构建命令。
+Solver code is not part of this repository. A domain and target pack are installed
+into a target repository under `.agentlab/`. The platform contains no
+repository-specific paths, branches, build commands, or test commands.
 
-## 文档
+## Documentation
 
-| 文档 | 读者 | 内容 |
+English is the default. Every documentation page has a Chinese version linked at
+the top. Operational files that workers read as data (`TASKS.md`, contracts,
+`scope/`, templates, test fixtures) are not duplicated; they remain in the
+language of the repository they belong to.
+
+| Document | Audience | Contents |
 |---|---|---|
-| [`docs/quickstart.md`](docs/quickstart.md) | 人 | 5 分钟跑通第一个 worker（English） |
-| [`docs/quickstart.zh-CN.md`](docs/quickstart.zh-CN.md) | 人 | 5 分钟跑通第一个 worker（中文） |
-| [`docs/workflow.md`](docs/workflow.md) | 人 | 用 agentlab 开发任意目标仓库（English） |
-| [`docs/workflow.zh-CN.md`](docs/workflow.zh-CN.md) | 人 | 用 agentlab 开发任意目标仓库（中文） |
-| [`platform/docs/target-pack-spec.md`](platform/docs/target-pack-spec.md) | 人 | target pack 的字段和安装语义 |
-| [`platform/docs/domain-pack-spec.md`](platform/docs/domain-pack-spec.md) | 人 | domain pack 规范 |
-| [`docs/validation.md`](docs/validation.md) | 人 | 验证实验：一次完整的代码改动闭环 |
-| [`docs/platform-support.md`](docs/platform-support.md) | 人 | macOS / Linux / Windows 支持矩阵 |
-| [`docs/install-manual.md`](docs/install-manual.md) | 人 | 手动安装，逐步验证，含排错和卸载 |
-| [`docs/install-agent.md`](docs/install-agent.md) | coding agent | 可执行安装协议 |
-| [`docs/usage.md`](docs/usage.md) | 人 | 日常用法：status / run / gate / integrate / pi |
-| [`platform/docs/governance.md`](platform/docs/governance.md) | 人 | 授权模型与当前强制程度 |
-| [`platform/docs/verification.md`](platform/docs/verification.md) | 人 | 门禁分层与退出码 |
-| [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) | 人 | 长周期路线 |
+| [`docs/README.md`](docs/README.md) | Everyone | Documentation index and language policy |
+| [`docs/quickstart.md`](docs/quickstart.md) | Humans | First successful worker run in five minutes |
+| [`docs/workflow.md`](docs/workflow.md) | Humans | Full process for any target repository |
+| [`docs/validation.md`](docs/validation.md) | Humans | End-to-end validation experiment |
+| [`docs/usage.md`](docs/usage.md) | Humans | Daily commands: status, run, gate, integrate, pi |
+| [`docs/install-manual.md`](docs/install-manual.md) | Humans | Manual installation, verification, troubleshooting, removal |
+| [`docs/install-agent.md`](docs/install-agent.md) | Coding agents | Executable installation protocol |
+| [`docs/platform-support.md`](docs/platform-support.md) | Humans | macOS / Linux / Windows support matrix |
+| [`platform/docs/target-pack-spec.md`](platform/docs/target-pack-spec.md) | Humans | Target pack fields and installation semantics |
+| [`platform/docs/domain-pack-spec.md`](platform/docs/domain-pack-spec.md) | Humans | Domain pack specification |
+| [`platform/docs/governance.md`](platform/docs/governance.md) | Humans | Authorization model and current enforcement |
+| [`platform/docs/verification.md`](platform/docs/verification.md) | Humans | Gate layers and exit codes |
+| [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) | Humans | Long-term plan (planning artifact) |
 
-### 示例 target
+### Worked example target
 
-| 文档 | 内容 |
+| Document | Contents |
 |---|---|
-| [`targets/oneflow/README.md`](targets/oneflow/README.md) | OneFLOW target pack 的安装与现状 |
-| [`targets/oneflow/WORKFLOW.md`](targets/oneflow/WORKFLOW.md) | OneFLOW 完整工作流（English） |
-| [`targets/oneflow/WORKFLOW.zh-CN.md`](targets/oneflow/WORKFLOW.zh-CN.md) | OneFLOW 完整工作流（中文） |
+| [`targets/oneflow/README.md`](targets/oneflow/README.md) | OneFLOW target pack: installation and status |
+| [`targets/oneflow/WORKFLOW.md`](targets/oneflow/WORKFLOW.md) | Complete OneFLOW workflow |
 
-## 安装
+## Installation
 
 ```bash
 cd open-research-agents
 export AGENTLAB="$PWD"
 
-# 一个独立的 worker Pi 配置目录（不影响你日常的 pi）
+# A separate Pi configuration directory for workers. Your daily ~/.pi/agent is not modified.
 mkdir -p ~/.pi/agentlab
 PI_CODING_AGENT_DIR=~/.pi/agentlab pi /login
 
-# 可选：写配置
+# Optional configuration
 mkdir -p ~/.config/agentlab
 cp examples/agentlab.config.toml ~/.config/agentlab/config.toml
 
-# 放到 PATH
+# Add the CLI to PATH
 ln -sf "$AGENTLAB/bin/agentlab" ~/.local/bin/agentlab
 
 agentlab doctor
 ```
 
-`agentlab` 只在自己启动的子进程里设置 `PI_CODING_AGENT_DIR`，你的 `~/.pi/agent` 不受影响。
+`agentlab` sets `PI_CODING_AGENT_DIR` only for the child process it starts.
+It does not modify the user's shell profile or `~/.pi/agent`.
 
-## 快速开始：任意目标仓库
+## First run on any target repository
 
 ```bash
-# 1) 安装 domain + target 到目标仓库
+# 1. Install a domain and target pack into the repository
 agentlab install <domain> <target> <repo>
 
-# 2) 检查并提交 .agentlab（scope_check 从 base ref 读取 scope）
+# 2. Review and commit .agentlab (scope_check reads the scope from the base ref)
 cd <repo>
 git status --short
 git add .agentlab AGENTS.md
 git commit -m "agentlab: add <target> pack"
 
-# 3) 检查
+# 3. Check the installation
 agentlab doctor
 agentlab status
 ```
 
-第一次接触一个仓库时，先让 target 处于 `audit` 模式：worker 只写 reports/RFC/repro，
-不改代码。审计完成、scope/contracts/verification 准备好之后，再切 `worker`。
+When a repository is unfamiliar, keep the target in `audit` mode. In that mode a
+worker may only write reports, RFCs, and repro records. Switch to `worker` after
+scopes, contracts, and a real verification case are in place.
 
-完整流程见 [`docs/workflow.md`](docs/workflow.md) / [`docs/workflow.zh-CN.md`](docs/workflow.zh-CN.md)。
+See [`docs/workflow.md`](docs/workflow.md) for the complete process.
 
-### 学习路径
-
-```text
-quickstart              第一次跑通（5 分钟，validation target）
-  → workflow            通用流程：任务、scope、contracts、gate、集成
-  → validation          完整验证实验，包括“错误实现会被抓住”
-  → target-pack-spec    新增一个目标仓库需要提供什么
-  → targets/oneflow     完整示例：OneFLOW
-```
-
-不需要一开始读完。先跑 quickstart，再按需要查 workflow。
-
-第一个可用示例是 OneFLOW：
+The first available target is OneFLOW:
 
 ```bash
 agentlab install cfd oneflow ~/OneFLOW
 cd ~/OneFLOW
-git add .agentlab AGENTS.md && git commit -m "agentlab: add OneFLOW target pack"
+git add .agentlab AGENTS.md
+git commit -m "agentlab: add OneFLOW target pack"
 agentlab status
 ```
 
-## 常用命令
+## Commands
 
 ```bash
-agentlab install <domain> <target> <repo>   # 安装
-agentlab update                             # 更新工具 + 重新应用 pack
-agentlab uninstall                          # 卸载（保留分支与日志）
-agentlab doctor                             # Pi、profile、guard、目标仓库
-agentlab config                             # 解析后的配置
-agentlab status [--json]                    # workstream / 报告 / gate / 待决 RFC
+agentlab install <domain> <target> <repo>   install a pack
+agentlab update                             update the tool and re-apply the current pack
+agentlab uninstall                          remove .agentlab from the current repository
+agentlab doctor                             check Pi, profile, guard, and target repository
+agentlab config                             show the resolved configuration
+agentlab status [--json]                    workstreams, reports, gates, pending RFCs
 agentlab preflight <ws>
 agentlab run <ws> [--detach] [extra...]
-agentlab gate <ws> [--here]                 # 默认在 worker 工作树里跑
+agentlab gate <ws> [--here]                 gate the worker worktree by default
 agentlab integrate <ws...>
 agentlab integrate-audit <ws...>
-agentlab pi <ws>                            # 在该 workstream 的工作树里交互式开 Pi
-agentlab clean <ws...>                      # 删 worktree，保留分支和日志
+agentlab pi <ws>                            open interactive Pi in that worktree
+agentlab clean <ws...>                      remove worktrees, keep branches and logs
 ```
 
-完整说明见 [`docs/usage.md`](docs/usage.md)。
+See [`docs/usage.md`](docs/usage.md) for details.
 
-## 平台自测
+## Platform tests
 
 ```bash
-bash tests/platform_smoke.sh      # 48 项：脚本、CLI、安装生命周期、session guard
-bash scripts/validate-harness.sh  # 27 项：完整门禁闭环，不调模型
+bash tests/platform_smoke.sh        # 48 checks: scripts, CLI, install lifecycle, session guards
+bash scripts/validate-harness.sh    # 27 checks: full gate loop, no model calls
 ```
 
-想验证“worker 能改代码且门禁不骗人”，按 [`docs/validation.md`](docs/validation.md) 走。
+To verify that a worker can change code while the gate still rejects wrong
+implementations, follow [`docs/validation.md`](docs/validation.md).
 
-## 已知边界
+## Known boundaries
 
-- 隔离是“约定 + 事后检查”，不是沙箱：有 bash 权限的 worker 技术上能改仓库外的文件。
-- `platform/` 在目标仓库之外，worker 不能通过改仓库来改 gate。
-- 验证关卡的有效性完全取决于 target 注册的算例。
-- v0.1 不支持隐式时间格式、MPI/GPU 性能优化、多项目、Web 面板。
-- 详见 [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)。
+- Isolation is enforced by convention and post-hoc checks, not a sandbox. A worker
+  with shell access can still read paths outside its worktree.
+- `platform/` lives outside the target repository; a worker cannot change the gate
+  by editing the repository.
+- The value of the verification gate depends entirely on the case registered by
+  the target.
+- v0.1 does not implement implicit time integration, MPI/GPU performance
+  optimization, multi-project coordination, or a web panel.
+- See [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) for the long-term plan.
 
 ## License
 
-MIT（如后续依赖检查要求，可调整）。
+MIT. The license may change after a dependency review.

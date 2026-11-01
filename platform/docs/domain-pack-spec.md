@@ -1,3 +1,5 @@
+**English** | [中文](domain-pack-spec.zh-CN.md)
+
 # Domain Pack Specification
 
 A domain pack is reusable across repositories. A **target pack** is one concrete

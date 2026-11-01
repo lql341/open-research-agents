@@ -1,6 +1,8 @@
+[English](quickstart.md) | **中文**
+
 # 快速开始
 
-目标：**大约五分钟**跑通第一个 worker，**不碰你的真实仓库**。
+目标：**大约五分钟**完成第一次 worker 运行，**不修改你的真实仓库**。
 
 本页只负责带你到“第一次成功”。安装细节见
 [`install-manual.md`](install-manual.md)；完整开发流程见
@@ -14,7 +16,7 @@
 
 ---
 
-## 0. 不花 token 先验证安装
+## 0. 在不消耗模型 token 的情况下验证安装
 
 ```bash
 cd ~/open-research-agents
@@ -42,7 +44,7 @@ git commit -m "validation target"
 
 ---
 
-## 2. 看起点
+## 2. 检查起点
 
 ```bash
 agentlab status
@@ -62,11 +64,11 @@ UNVERIFIED: S1 not implemented: first-order upwind residual
 GATE UNVERIFIED (mode: worker)
 ```
 
-这正是重点：实现之前，数值门禁诚实地是 `UNVERIFIED`，不是 `PASS`。
+这是预期行为：实现之前，数值门禁诚实地是 `UNVERIFIED`，不是 `PASS`。
 
 ---
 
-## 3. 跑一个真实 worker
+## 3. 运行一个真实 worker
 
 ```bash
 agentlab run spatial --detach
@@ -90,7 +92,7 @@ worker 做了这些事：
 - 改 `modules/spatial/upwind.cpp`；
 - 新增 `tests/unit/spatial/upwind_test.cpp`；
 - 在 `CMakeLists.txt` 注册测试；
-- 跑 build + unit + verification；
+- 运行 build + unit + verification；
 - 在 `agent/spatial` 上提交；
 - 写 `.agentlab/reports/spatial.md`。
 
@@ -130,7 +132,7 @@ GATE PASS. Review the integration branch, then merge main after human approval.
 
 ---
 
-## 5. 看它到底做了什么
+## 5. 检查改动内容
 
 ```bash
 cd /tmp/agentlab-first-wt/spatial
@@ -139,11 +141,11 @@ cat .agentlab/reports/spatial.md
 ```
 
 报告里有 commit SHA、gate 输出、改动文件、复现记录和已知局限。
-如果 worker 发现契约没规定的东西，它应该记录成待决问题，而不是自己悄悄决定。
+如果 worker 发现契约没规定的东西，它应该记录成待决问题，而不是自己自行决定。
 
 ---
 
-## 6. 用到你自己的仓库
+## 6. 用于你自己的仓库
 
 安装 domain + target pack：
 

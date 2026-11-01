@@ -1,10 +1,12 @@
+**English** | [中文](workflow.zh-CN.md)
+
 # Developing a target repository with agentlab
 
 Status: v0.1  
 Audience: a solo developer who is used to `cd <repo> && pi` and typing requests in
 natural language.
 
-`agentlab` does not replace Pi. It adds four things around a normal Pi session:
+`agentlab` does not replace Pi. It adds four properties around a normal Pi session:
 a **task**, an **isolated worktree**, a **gate**, and a **commit + report**.
 
 If you only want the first successful run, start with
@@ -22,13 +24,13 @@ target-neutral. For a complete worked example, see the
 | **Task worker** | `agentlab run <ws>` | a concrete deliverable: code + tests + verification + commit | yes |
 | **Interactive worker** | `agentlab pi <ws>` | continue a worker's session in its worktree, debug, ask follow-ups | gate is manual |
 
-Rules of thumb:
+Guidelines:
 
-- **Explore with native Pi.** Do not pay the task/gate overhead for "where is this
+- **Explore with native Pi.** Avoid the task/gate overhead for "where is this
   function" or a one-line comment fix.
 - **Use a task worker when you already know the deliverable** and want scope
   enforcement, an isolated worktree, a commit, and a report.
-- **Use an interactive worker when a task worker finished or got stuck** and you
+- **Use an interactive worker when a task worker finished or is blocked** and you
   want to continue in the same worktree with the same session.
 
 Natural language still works. For a task worker, put the request in
@@ -253,7 +255,7 @@ Do not:    rewrite shared foundations, build system, or test architecture
 Evidence:  <existing behavior unchanged>; <new behavior true>; tests pass
 ```
 
-If the existing test target cannot express the new behavior, do not pretend it
+If the existing test target cannot express the new behavior, do not claim it
 can. Record the missing coverage in the report and provide the exact command and
 output as manual evidence.
 
@@ -291,7 +293,7 @@ or a traceable record.
 
 ---
 
-## 9. Where things live
+## 9. File layout
 
 ```text
 <repo>/.agentlab/                  installed target pack (committed)
@@ -324,4 +326,4 @@ The main checkout and your daily `~/.pi/agent` are not used by workers.
 | Unit command | full suite may be too slow; narrow it with the target's own selector |
 | Base branch | target workers branch from `BASE_REF`; keep it in sync with the target's policy |
 | Test architecture | do not refactor it as part of a code task |
-| Shared foundations | keep them human-owned; do not widen scope to "just fix it" |
+| Shared foundations | keep them human-owned; do not widen scope to "fix it incidentally" |

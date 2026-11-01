@@ -1,3 +1,5 @@
+**English** | [中文](governance.zh-CN.md)
+
 # Governance Model (v0.1 implementation status)
 
 ## Authorization

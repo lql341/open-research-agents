@@ -1,107 +1,100 @@
-# 手动安装
+**English** | [中文](install-manual.zh-CN.md)
 
-面向人，一步步执行。每一步都给了验证命令：验证不过就不要继续。
+# Manual Installation
 
-> 如果你更愿意让 coding agent 帮你装，用 [`install-agent.md`](install-agent.md)。
+This page is for a human operator. Each step includes a verification command;
+stop if a verification fails.
 
----
+If a coding agent will perform the installation, use
+[`install-agent.md`](install-agent.md) instead.
 
-> 平台支持（macOS / Linux / WSL / Windows Git Bash）见 [`platform-support.md`](platform-support.md)。
-> Windows 原生 PowerShell 不受支持。
+> Platform support is described in
+> [`platform-support.md`](platform-support.md). Native PowerShell is not
+> supported; use Git Bash or WSL on Windows.
 
-## 0. 前置条件
+## 0. Prerequisites
 
 ```bash
-bash --version | head -1     # 需要 4.0+
-git --version                # 需要 2.32+
-python3 --version            # 需要 3.8+（status / repro 用）；Windows 上 python 也可以
-pi --version                 # 需要 1.x
+bash --version | head -1     # 4.0+ recommended; system Bash 3.2 on macOS is supported
+git --version                # 2.32+
+python3 --version            # 3.8+ (status and repro records); `python` also works on Windows
+pi --version                 # 1.x
 ```
 
-目标仓库本身还需要它自己的构建与测试工具；只有 `worker` 模式和
-`integration` gate 才会用到：
+The target repository also needs its own build and test tools. These are only
+required for `worker` and `integration` gates:
 
 ```bash
 cmake --version | head -1
 c++ --version | head -1
 ```
 
-**没有 `pi` 就先装**（只装一次，全局）：
+If `pi` is not installed, install it once:
 
 ```bash
-# 官方安装脚本
 curl -fsSL https://pi.dev/install | sh
-# 或 npm
+# or
 npm install -g @earendil-works/pi-coding-agent
 ```
 
-验证：
+Verify:
 
 ```bash
 pi --version
 ```
 
-应该打印一个 1.x 版本号。
-
----
-
-## 1. 取到仓库
+## 1. Obtain the repository
 
 ```bash
-cd ~/Downloads/agent/repo        # 或你放项目的位置
-git clone <this-repo-url> open-research-agents
+cd ~/agentlab
+git clone <this-repo> open-research-agents
 cd open-research-agents
 export AGENTLAB="$PWD"
 ```
 
-验证：
+Verify:
 
 ```bash
 ls platform/scripts bin docs
 ```
 
-应该看到 `install_target.sh`、`agentlab`、`usage.md` 等。
+## 2. Create a separate Pi profile for workers
 
----
-
-## 2. 建一个独立的 worker Pi 配置目录
-
-**这一步是整个安装里最重要的隔离**。worker 不能和你日常的 Pi 共用配置，否则你个人的
-extensions、skills、MCP 会全部加载进每一个 worker。
+This is the most important isolation step. Workers must not share the daily Pi
+configuration, because personal extensions, skills, and MCP servers would load
+into every worker.
 
 ```bash
 mkdir -p ~/.pi/agentlab
 PI_CODING_AGENT_DIR=~/.pi/agentlab pi /login
 ```
 
-登录方式按你用的 provider 选（OAuth、API key 都行）。如果你已经有可用的
-`~/.pi/agent/auth.json` 和 `models.json`，也可以只复制这两个文件：
+If `~/.pi/agent/auth.json` and `models.json` already exist, they can be copied
+instead of logging in again:
 
 ```bash
 cp ~/.pi/agent/auth.json ~/.pi/agentlab/ 2>/dev/null || true
 cp ~/.pi/agent/models.json ~/.pi/agentlab/ 2>/dev/null || true
 ```
 
-验证：
+Verify:
 
 ```bash
 PI_CODING_AGENT_DIR=~/.pi/agentlab pi --list-models | head -5
 ls ~/.pi/agentlab
 ```
 
-`~/.pi/agentlab` 里**不应该有** `extensions/`、`skills/`、`mcp.json`。
-有的话说明复制多了，删掉。
+The profile should not contain `extensions/`, `skills/`, or `mcp.json` unless
+those resources are intentionally available to workers.
 
----
-
-## 3. 写 CLI 配置
+## 3. Configure the CLI
 
 ```bash
 mkdir -p ~/.config/agentlab
 cp examples/agentlab.config.toml ~/.config/agentlab/config.toml
 ```
 
-打开确认这两项：
+Confirm:
 
 ```toml
 [pi]
@@ -109,62 +102,58 @@ bin = "pi"
 profile = "~/.pi/agentlab"
 ```
 
-可选：给 worker 指定更便宜的模型。
+To use a cheaper model for workers:
 
 ```toml
 [pi]
-args = "--model your-provider/your-cheap-model"
+args = "--model your-provider/your-model"
 ```
 
-验证：
+Verify:
 
 ```bash
 ./bin/agentlab config
 ```
 
-应该看到：
+Expected:
 
 ```text
 pi.profile  /Users/<you>/.pi/agentlab
 ```
 
----
-
-## 4. 放进 PATH
+## 4. Add the CLI to PATH
 
 ```bash
 mkdir -p ~/.local/bin
 ln -sf "$AGENTLAB/bin/agentlab" ~/.local/bin/agentlab
 ```
 
-确认 `~/.local/bin` 在 PATH 里：
+Confirm `~/.local/bin` is on `PATH`:
 
 ```bash
-echo "$PATH" | tr ':' '\n' | grep -q "$HOME/.local/bin" && echo "in PATH" || echo "NOT in PATH"
+printf '%s\n' "$PATH" | tr ':' '\n' | grep -q "$HOME/.local/bin" && echo "in PATH" || echo "NOT in PATH"
 ```
 
-如果不在，把下面这行加到 `~/.zshrc` 或 `~/.bashrc`：
+If it is missing, add this line to `~/.zshrc` or `~/.bashrc`:
 
 ```sh
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-验证：
+Verify:
 
 ```bash
 agentlab version
 ```
 
----
-
-## 5. 自检
+## 5. Self-check
 
 ```bash
-cd ~/Downloads/agent/repo/open-research-agents
+cd ~/open-research-agents
 agentlab doctor
 ```
 
-期望输出：
+Expected:
 
 ```text
 tools
@@ -177,62 +166,56 @@ guard
   ok    platform/extensions/guard.ts
 ```
 
-末尾应该是 `doctor: PASS`。
+The last line should be `doctor: PASS`. If a warning appears, resolve it before
+continuing.
 
-如果这里已经有 `warn`，先看 [`troubleshooting`](#9-排错) 再继续。
+## 6. Install into a target repository
 
----
-
-## 6. 接到目标仓库
-
-### 6.1 现有仓库（推荐）
-
-以 OneFLOW 为例，仓库路径按你的实际路径改：
+### 6.1 Existing repository
 
 ```bash
-agentlab install cfd oneflow ~/OneFLOW
+agentlab install <domain> <target> <repo>
 ```
 
-它会：
+The installer:
 
-- 创建 `<repo>/.agentlab/`（规则、contracts 模板、scope、任务板、验证占位）；
-- 如果 `<repo>/AGENTS.md` 不存在，创建一个指针文件；
-- **不会**修改任何求解器代码、构建脚本或测试。
+- creates `<repo>/.agentlab/` with rules, contract templates, scope, task board,
+  and a verification placeholder;
+- creates `<repo>/AGENTS.md` only if it does not already exist;
+- does not modify solver code, build scripts, or tests.
 
-然后**必须提交**，因为 `scope_check.sh` 从 base ref 读取 scope：
+Commit the pack, because `scope_check` reads the scope from the base ref:
 
 ```bash
-cd ~/OneFLOW
+cd <repo>
 git status --short
 git add .agentlab AGENTS.md
-git commit -m "agentlab: add collaboration target pack"
-```
-
-验证：
-
-```bash
+git commit -m "agentlab: add <target> pack"
 agentlab status
 ```
 
-应该打印 workstream 表。第一次运行报告都是 `missing`，这是正常的。
+At this point all workstreams normally show `missing`; that is expected before
+the first worker run.
 
-### 6.2 从模板开始
+### 6.2 Template repository
 
 ```bash
-cp -R "$AGENTLAB/tests/fixtures/mini-target" ~/my-cfd
-cd ~/my-cfd
+cp -R "$AGENTLAB/examples/validation/target" ~/agentlab-target
+cd ~/agentlab-target
 git init -b main
-git add . && git commit -m "init"
+git add -A
+git commit -m "init"
 
-agentlab install cfd oneflow ~/my-cfd
-git add -A && git commit -m "agentlab install"
+agentlab install <domain> <target> ~/agentlab-target
+git add -A
+git commit -m "agentlab install"
 ```
 
-`tests/fixtures/mini-target` 只是给平台自测用的最小工程，不是 CFD 产品代码。
+The validation target is a fixture for the platform, not product code.
 
-### 6.3 检查 base ref
+### 6.3 Check the base ref
 
-`.agentlab/target.env` 里的 `BASE_REF` 必须和目标仓库真实分支一致：
+`BASE_REF` in `.agentlab/target.env` must match a real branch or ref:
 
 ```bash
 cd <repo>
@@ -240,113 +223,108 @@ git branch --show-current
 grep BASE_REF .agentlab/target.env
 ```
 
-不一致就改掉再提交。`agentlab status` 在 base ref 不存在时会给出 warning。
+If they differ, update `target.env` and commit it. `agentlab status` warns when
+the base ref does not exist.
 
----
+## 7. First run
 
-## 7. 第一次运行
-
-先跑 `audit` 模式：worker 只能写报告，不能改代码。
+Start in `audit` mode: workers may only write reports, RFCs, and repro records.
 
 ```bash
 cd <repo>
-grep AGENTLAB_MODE .agentlab/target.env    # 应为 audit
-agentlab preflight runtime-io
-agentlab run runtime-io
+grep AGENTLAB_MODE .agentlab/target.env    # expected: audit
+agentlab preflight <ws>
+agentlab run <ws>
 agentlab status
 ```
 
-`agentlab run` 会真的调用 Pi、消耗 token。只想验证流程的话用假 Pi：
+`agentlab run` invokes the model and consumes tokens. To verify the flow without
+model calls, use a deterministic stand-in:
 
 ```bash
 cat > /tmp/fake-pi.sh <<'SH'
 #!/bin/sh
 mkdir -p .agentlab/reports
-printf '# Report\nstatus: ready\ncommit: deadbee\n' > .agentlab/reports/runtime-io.md
-git add .agentlab/reports/runtime-io.md && git commit -q -m "fake report"
+printf '# Report\nstatus: ready\ncommit: deadbee\n' > .agentlab/reports/<ws>.md
+git add .agentlab/reports/<ws>.md
+git commit -q -m "fake report"
 SH
 chmod +x /tmp/fake-pi.sh
-PI_BIN=/tmp/fake-pi.sh agentlab run runtime-io
+PI_BIN=/tmp/fake-pi.sh agentlab run <ws>
 agentlab status
 ```
 
----
+## 8. Switch to code mode
 
-## 8. 切到代码模式
+Only after the audit and the human decisions are complete:
 
-只有在你确认真实边界之后才做。以 OneFLOW 为例：
-
-1. 读 `.agentlab/reports/*.md` 和 `.agentlab/RFC/*.md`；
-2. 回答报告里 `need_decision` 的问题；
-3. 用真实的、互不重叠的路径重写 `.agentlab/scope/<workstream>.txt`；
-4. 填 `.agentlab/contracts/`（替换模板内容）；
-5. 把 `.agentlab/target.env` 的 `AGENTLAB_MODE` 改成 `worker`；
-6. 校验 `BUILD_CMD` / `UNIT_CMD` 在本机能跑通；
-7. 注册至少一个真实验证算例，替换 `verification/run_all.sh` 的占位。
-
-然后：
+1. Read `.agentlab/reports/*.md` and `.agentlab/RFC/*.md`.
+2. Answer the `need_decision` items.
+3. Replace `.agentlab/scope/<ws>.txt` with the real, disjoint source paths.
+4. Fill `.agentlab/contracts/` with the repository's actual boundary.
+5. Set `AGENTLAB_MODE=worker` in `.agentlab/target.env`.
+6. Verify `BUILD_CMD` and `UNIT_CMD` on this machine.
+7. Register at least one real verification case; replace the placeholder
+   `verification/run_all.sh`.
 
 ```bash
-agentlab preflight <workstream>
-agentlab run <workstream>
-agentlab gate <workstream> --mode integration   # 合并前必须 PASS
+agentlab preflight <ws>
+agentlab run <ws>
+agentlab gate <ws> --mode integration
 ```
 
-### 门槛语义
+### Gate semantics
 
-| 门 | 要求 |
+| Gate | Requirement |
 |---|---|
-| `audit` | 只跑 scope |
-| `worker` | scope + build + tests + verification（允许 `UNVERIFIED`） |
-| `integration` | 同上，但 verification 必须 `PASS` |
-| `release` | 全部必须 `PASS` |
+| `audit` | Scope only |
+| `worker` | Scope + build + tests + verification (UNVERIFIED allowed) |
+| `integration` | Same, but verification must PASS |
+| `release` | All gates must PASS |
 
-`gate.sh` 退出码：`0` PASS，`1` FAIL，`2` UNVERIFIED。
+`gate.sh` exit codes: `0` PASS, `1` FAIL, `2` UNVERIFIED.
 
----
+## 8.5 Run the validation experiment first
 
-## 8.5 先跑一次验证实验
-
-在接真实仓库之前，建议先在临时目录跑一遍完整闭环：
+Before using a real repository, run the end-to-end loop:
 
 ```bash
-bash scripts/validate-harness.sh          # 零成本，验证脚手架
+bash scripts/validate-harness.sh          # no model calls
 ```
 
-然后按 [`validation.md`](validation.md) 的方式 B，让真实 worker 做同一个任务。
-这一步通过后，再考虑切到你的真实仓库。
+Then follow Method B in [`validation.md`](validation.md) with a real worker.
+Proceed to a real repository only after both pass.
 
-## 9. 排错
+## 9. Troubleshooting
 
-| 现象 | 原因 | 处理 |
+| Symptom | Cause | Action |
 |---|---|---|
-| `agentlab: .agentlab/ not found` | 还没安装，或不在目标仓库里 | `agentlab install ...`，或在仓库根目录运行 |
-| `base ref 'dev' not found` | `BASE_REF` 和真实分支不一致 | 改 `.agentlab/target.env` 后提交 |
-| `working tree is dirty` | 目标仓库有未提交改动 | worker 从 base ref 建工作树，不会带上未提交内容；建议先提交或 stash |
-| `worker made no commit` | worker 没提交就退出 | 看 `agentlab status` 和工作树里的日志；报告里应有原因 |
-| `OUT OF SCOPE: xxx` | 改动超出 scope | 改 scope（人工），或让 worker 写 RFC |
-| gate 显示 `UNVERIFIED` | 验证算例还是占位 | 注册真实算例；`integration` 会拒绝 |
-| `ctest` 报 0 个测试却成功 | 目标仓库没有对应 label | 不要用 `-L unit` 之类不存在的 label，直接跑 `ctest` |
-| worker 用错了模型 | `~/.pi/agentlab` 没有模型配置 | 在那个目录里重新 `pi /login`，或在 `config.toml` 设 `pi.args` |
-| 你日常的 Pi 变了 | 不该发生 | 检查是否把 `PI_CODING_AGENT_DIR` 写进了 shell profile，删掉 |
+| `agentlab: .agentlab/ not found` | Pack not installed, or wrong directory | Run `agentlab install ...` from the repository root |
+| `base ref '<ref>' not found` | `BASE_REF` does not match a real ref | Update `.agentlab/target.env` and commit |
+| `working tree is dirty` | Uncommitted changes in the target repository | Commit or stash; workers branch from the base ref, not from the working tree |
+| `worker made no commit` | Worker exited without committing | Inspect `agentlab status`, the worktree, and the log |
+| `OUT OF SCOPE: ...` | Change outside the workstream scope | Adjust scope (human decision) or require an RFC |
+| Gate reports `UNVERIFIED` | Verification is still a placeholder | Register a real case; `integration` will reject UNVERIFIED |
+| `ctest` finds zero tests | The target has no matching label or selector | Use the target's real test command; do not rely on a label that does not exist |
+| Worker uses the wrong model | `~/.pi/agentlab` has no model configuration | Log in again in that directory, or set `pi.args` in the config |
+| Daily Pi behavior changed | Shell profile exports `PI_CODING_AGENT_DIR` | Remove it from the shell profile |
 
----
-
-## 9.5 更新
+## 9.5 Update
 
 ```bash
-cd <platform-repo>
+cd ~/open-research-agents
 agentlab update
 ```
 
-它会依次做三件事：
+It performs three steps:
 
-1. 对 `open-research-agents` 做 `git pull --ff-only`（工作区脏或加 `--no-pull` 时跳过）；
-2. 用 `.agentlab/.pack` 里记录的 domain/target 重新应用 pack，**只补新增文件，不覆盖已有文件**；
-3. 重新生成 `.agentlab/AGENTS.md`，若与你当前的文件不同，会写 `.agentlab/AGENTS.md.new`
-   并打印 diff，**不覆盖你的修改**。
+1. `git pull --ff-only` on the tool repository (skipped when the tree is dirty or
+   `--no-pull` is used);
+2. re-applies the pack recorded in `.agentlab/.pack`, adding only new files;
+3. regenerates `.agentlab/AGENTS.md`; if it differs, writes
+   `.agentlab/AGENTS.md.new` and prints a diff instead of overwriting local edits.
 
-更新后：
+After updating:
 
 ```bash
 cd <repo>
@@ -354,65 +332,50 @@ git status --short
 agentlab status
 ```
 
-有新增文件就提交：
+If `.agentlab/AGENTS.md.new` was created, review and merge it manually.
 
-```bash
-git add .agentlab && git commit -m "agentlab: apply pack updates"
-```
-
-如果看到 `.agentlab/AGENTS.md.new`，人工合并后再：
-
-```bash
-mv .agentlab/AGENTS.md.new .agentlab/AGENTS.md
-git add .agentlab/AGENTS.md && git commit -m "agentlab: merge rule updates"
-```
-
-## 10. 卸载
+## 10. Uninstall
 
 ```bash
 cd <repo>
 agentlab uninstall
 ```
 
-它会：
+It removes `.agentlab/` and the generated root `AGENTS.md` pointer, but only when
+that pointer was created by the installer. It keeps `agent/*` branches,
+`<repo>-wt/logs`, and the worker Pi profile.
 
-- 删掉 `.agentlab/`（报告、RFC、repro 一并删除，先备份）；
-- 只有在根 `AGENTS.md` 是本工具生成的那份指针时才删它，你自己写的会保留；
-- 如果还有 worker 工作树，会**拒绝执行**，提示你先 `agentlab clean <ws>`；加 `--force` 可强制。
-
-它会保留：`agent/*` 分支、`<repo>-wt/logs`、以及 worker 的 Pi 配置。
-
-再清理剩下的：
+If worker worktrees still exist, uninstall refuses until they are removed:
 
 ```bash
-agentlab clean <workstream...>
-rm -rf <repo>-wt
-
-# 可选：删 CLI 和配置
-rm -f ~/.local/bin/agentlab
-rm -rf ~/.config/agentlab
-
-# 可选：删 worker 的 Pi 配置（会丢 worker 的登录状态）
-rm -rf ~/.pi/agentlab
+agentlab clean <ws...>
 ```
 
-你的 `~/.pi/agent` 全程没有被修改，不需要回滚。
+Optional full cleanup:
 
----
+```bash
+rm -rf <repo>-wt
+rm -f ~/.local/bin/agentlab
+rm -rf ~/.config/agentlab
+rm -rf ~/.pi/agentlab      # removes the worker login state
+```
 
-## 附：安装会写哪些文件
+`~/.pi/agent` is not modified at any point.
 
-| 路径 | 由谁创建 | 内容 |
+## Appendix: files created by the installation
+
+| Path | Created by | Contents |
 |---|---|---|
-| `<repo>/.agentlab/` | `agentlab install` | 规则、contracts、scope、任务板、验证占位、模板 |
-| `<repo>/AGENTS.md` | `agentlab install`（仅当不存在） | 指向 `.agentlab/AGENTS.md` 的指针 |
-| `<repo>-wt/<ws>/` | `agentlab run` | git worktree |
-| `<repo>-wt/logs/` | `agentlab run` | 每次 worker 的日志 |
-| `<repo>-wt/sessions/` | `agentlab run` | worker 的 Pi 会话 |
-| `<repo>/.agentlab/reports/` | worker | 每个 workstream 一份报告 |
-| `<repo>/.agentlab/RFC/` | worker | 待人工批准的提案 |
-| `<repo>/.agentlab/repro/` | gate / worker | 门禁与运行证据 |
-| `~/.config/agentlab/config.toml` | 你 | CLI 配置 |
-| `~/.pi/agentlab/` | 你 | worker 的 Pi 配置 |
+| `<repo>/.agentlab/` | `agentlab install` | Rules, contracts, scope, task board, verification placeholder, templates |
+| `<repo>/AGENTS.md` | `agentlab install` (only if absent) | Pointer to `.agentlab/AGENTS.md` |
+| `<repo>-wt/<ws>/` | `agentlab run` | Git worktree |
+| `<repo>-wt/logs/` | `agentlab run` | Worker logs |
+| `<repo>-wt/sessions/` | `agentlab run` | Worker Pi sessions |
+| `<repo>/.agentlab/reports/` | Worker | One report per workstream |
+| `<repo>/.agentlab/RFC/` | Worker | Proposals awaiting a human |
+| `<repo>/.agentlab/repro/` | Gate / worker | Gate and run evidence |
+| `~/.config/agentlab/config.toml` | Operator | CLI configuration |
+| `~/.pi/agentlab/` | Operator | Worker Pi configuration |
 
-**不会写**：`~/.pi/agent`、目标仓库的源码/构建/测试、任何全局 Pi 设置。
+The installer does not write `~/.pi/agent`, target source code, build scripts, or
+tests.

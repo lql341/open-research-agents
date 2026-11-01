@@ -1,37 +1,43 @@
-# 验证实验：一次完整的代码改动闭环
+**English** | [中文](validation.zh-CN.md)
 
-目的：证明 **"worker 能改代码，而且门禁不会骗人"**。
-这是整个平台唯一还没被验证的部分（审计跑通了，代码改动没跑通）。
+# Validation Experiment: A Complete Code-Change Loop
 
-实验对象是一个 30 行规模的真实 CFD 任务，不是假任务：
+Purpose: demonstrate that **a worker can change code while the gate still rejects
+incorrect implementations**. The audit loop is already validated; this experiment
+validates the code-change loop.
 
-> 实现一维线性对流的**一阶迎风残差**，并让 **MMS 空间收敛阶** 报告 ≈ 1。
+The subject is a small but real CFD task:
+
+> Implement the **first-order upwind residual** for 1D linear advection and make
+> the **MMS spatial convergence** check report order approximately 1.
+
+The task is about 30 lines of code. It is not a mock.
 
 ---
 
-## 为什么是这个例子
+## Why this example
 
-| 要求 | 这个例子怎么满足 |
+| Requirement | How the example satisfies it |
 |---|---|
-| 真实但不昂贵 | 一个 `residual()` 函数 + 一个单元测试，编译 2 秒 |
-| 有客观真值 | MMS：`u = sin(2π(x−at))`，残差应收敛到 `−a·u_x`，一阶精度 |
-| 能区分"做了"和"做对" | 编译通过、单测通过都不够；必须算出 order ≈ 1 |
-| 能证明门禁不是摆设 | 换个**中心差分**（二阶）→ 验证必须失败 |
-| 不碰你的真实仓库 | 全部在临时目录里 |
+| Real but inexpensive | One `residual()` function and one unit test; compilation takes about two seconds |
+| Objective ground truth | MMS with `u = sin(2π(x−at))`; the residual must converge to `−a·u_x` at first order |
+| Distinguishes "implemented" from "correct" | Compilation and unit tests are insufficient; the measured order must be approximately 1 |
+| Proves the gate is meaningful | Replacing the scheme with central differences (second order) must fail verification |
+| Does not modify the real repository | Everything runs in a temporary directory |
 
 ---
 
-## 三种验证，成本递增
+## Three validation methods, increasing in cost
 
-### 方式 A：只验证脚手架（**零成本，不调模型**）
+### Method A: validate the harness only (no model calls, no cost)
 
 ```bash
-cd ~/Downloads/agent/repo/open-research-agents
+cd ~/open-research-agents
 bash scripts/validate-harness.sh
 ```
 
-16 项断言，约 15 秒，不花一个 token。它用一个确定性的"假 worker"
-走完整条链路，并按顺序检查：
+The script runs 27 assertions in about 15 seconds and makes no model calls. It uses
+a deterministic stand-in worker and checks the complete control flow:
 
 ```text
 == baseline: contracts, core and verification exist
@@ -65,57 +71,52 @@ bash scripts/validate-harness.sh
   ok    names the offending path
 ```
 
-**这一步已经证明了全部机制**：三态门禁、scope 强制、真实数值验证、集成门禁、
-以及"错误实现会被抓住"。
+This method validates every mechanism: the three-state gate, scope enforcement,
+real numerical verification, integration gating, and rejection of an incorrect
+implementation.
 
-### 方式 B：让真实 Pi worker 做同一件事（**花很少 token**）
+### Method B: run a real Pi worker on the same task (small model cost)
 
 ```bash
-# 准备
 cd /tmp
 rm -rf val val-wt
-cp -R ~/Downloads/agent/repo/open-research-agents/examples/validation/target val
+cp -R ~/open-research-agents/examples/validation/target val
 cd val
-git init -b main && git add -A && git commit -m "validation target"
+git init -b main
+git add -A
+git commit -m "validation target"
 
-# 确认起点是 UNVERIFIED
-agentlab gate spatial              # 默认在 worker 工作树里跑，期望 PASS
-# 注意：在主检出跑 agentlab gate spatial 会得到 UNVERIFIED，因为主检出还是桩
-#       并且会在主检出留下 .agentlab/repro 记录；integrate 允许这类记录，
-#       但会在 integration 提交里带上它们
+# Starting point: expected UNVERIFIED, exit 2
+agentlab gate spatial
 
-# 让 worker 干活（thinking=high 时建议加 --detach）
+# Run the worker (use --detach when thinking=high)
 agentlab run spatial --detach
 agentlab status
 tail -f /tmp/val-wt/logs/spatial-detached-*.log
 
-# 看结果
-agentlab status
-agentlab gate spatial              # 期望 exit 0，输出 observed_order≈1
-agentlab integrate spatial   # 期望 GATE PASS (mode: integration)
+# Inspect the result
+agentlab gate spatial              # defaults to the worker worktree
+agentlab integrate spatial
 ```
 
-这就是**唯一能证明"模型能在这个约束下完成任务"的实验**。
-建议先跑方式 A，跑通后再跑方式 B。
+This is the only method that demonstrates that a model can complete the task under
+these constraints. Run Method A first; run Method B only after A passes.
 
-### 方式 C：接到你的真实仓库（**等 A、B 都通过后**）
+### Method C: apply the process to a real repository (after A and B pass)
 
-按 [`install-manual.md`](install-manual.md) 第 8 节，把 OneFLOW 的
-`AGENTLAB_MODE` 从 `audit` 改成 `worker`，然后选一个**范围最小**的真任务：
-例如把 `HybridRoe()` 的空实现改成显式 fail-fast。
-
-不要一上来就让 worker 改求解器核心。
+Follow [`workflow.md`](workflow.md), switch the target from `audit` to `worker`,
+and choose the smallest real task. Do not begin with solver-core changes.
 
 ---
 
-## 方式 B 的详细步骤与期望输出
+## Method B: detailed steps and expected output
 
 ```bash
 cd /tmp/val
 agentlab gate spatial
 ```
 
-期望（**关键**：退出码 2，不是 0）：
+Expected: **exit code 2**, not 0:
 
 ```text
 == unit
@@ -128,10 +129,10 @@ GATE UNVERIFIED (mode: worker)
 ```
 
 ```bash
-agentlab run spatial
+agentlab run spatial --detach
 ```
 
-期望：
+Expected:
 
 ```text
 preflight: ... mode=worker
@@ -148,7 +149,7 @@ run_worker: exit=0 head=<sha>
 agentlab gate spatial
 ```
 
-期望（**关键**：真实测出来的 order）：
+Expected: a measured convergence order:
 
 ```text
 case=mms-advection-1d
@@ -164,7 +165,7 @@ GATE PASS (mode: worker)
 agentlab integrate spatial
 ```
 
-期望：
+Expected:
 
 ```text
 == merge agent/spatial
@@ -177,125 +178,134 @@ GATE PASS. Review the integration branch, then merge main after human approval.
 
 ---
 
-## 你要亲眼检查的五件事
+## Five points to verify manually
 
-跑完之后，不要只看 `GATE PASS`。逐项确认：
+Do not rely on `GATE PASS` alone. Check each item below.
 
-### 1. worker 真的只改了自己该改的
+### 1. The worker changed only its scope
 
 ```bash
 cd /tmp/val-wt/spatial
 git diff --stat main...HEAD
 ```
 
-应该只有 `modules/spatial/`、`tests/unit/spatial/`、`CMakeLists.txt`、
-`.agentlab/reports/`、`.agentlab/repro/`。
+Expected paths: `modules/spatial/`, `tests/unit/spatial/`, `CMakeLists.txt`,
+`.agentlab/reports/`, and `.agentlab/repro/`.
 
-### 2. 报告是真的，不是复述任务
+### 2. The report describes the work, not the task
 
 ```bash
 cat /tmp/val-wt/spatial/.agentlab/reports/spatial.md
 ```
 
-看它有没有写：改了什么、gate 输出、commit SHA、已知局限。
-如果只是抄了一遍 `.agentlab/TASKS.md`，说明 prompt 需要收紧。
+The report should contain the change summary, gate output, commit SHA, and known
+limitations. If it only restates `.agentlab/TASKS.md`, the prompt needs tightening.
 
-### 3. 验证是算出来的，不是打印出来的
+### 3. The verification result is measured, not printed
 
 ```bash
-cd /tmp/val && git checkout integration && ./build/adv_mms
+cd /tmp/val
+git checkout integration
+./build/adv_mms
 ```
 
-它必须打印 `observed_order=0.9xxx`。如果打印的是从别处读来的常数，
-说明验证算例写坏了。
+The output must contain `observed_order=0.9xxx`. A constant read from another file
+is not valid evidence.
 
-### 4. 门禁真的会拒绝
+### 4. The gate rejects an incorrect implementation
 
 ```bash
-# 故意改错：把一阶迎风换成中心差分
 cd /tmp/val-wt/spatial
 python3 - <<'PY'
 from pathlib import Path
 p = Path('modules/spatial/upwind.cpp')
 s = p.read_text()
-s = s.replace('const double left = U.data()[static_cast<std::size_t>(i) - 1 + g];',
-  'const double left = U.data()[static_cast<std::size_t>(i) - 1 + g];\n'
-  '  const double right = U.data()[static_cast<std::size_t>(i) + 1 + g];')
-s = s.replace('R.data()[static_cast<std::size_t>(i) + g] = -speed_ * (self - left) / h;',
-  'R.data()[static_cast<std::size_t>(i) + g] = -speed_ * (right - left) / (2.0 * h);')
+s = s.replace(
+    'const double left = U.data()[static_cast<std::size_t>(i) - 1 + g];',
+    'const double left = U.data()[static_cast<std::size_t>(i) - 1 + g];\n'
+    '  const double right = U.data()[static_cast<std::size_t>(i) + 1 + g];')
+s = s.replace(
+    'R.data()[static_cast<std::size_t>(i) + g] = -speed_ * (self - left) / h;',
+    'R.data()[static_cast<std::size_t>(i) + g] = -speed_ * (right - left) / (2.0 * h);')
 p.write_text(s)
 PY
-git add -A && git commit -m "wrong scheme"
-agentlab gate spatial        # 必须失败
+git add -A
+git commit -m "wrong scheme"
+agentlab gate spatial
 ```
 
-### 5. 越界真的会被拦住
+The gate must fail.
+
+### 5. Out-of-scope edits are rejected
 
 ```bash
 cd /tmp/val-wt/spatial
 echo "// tampered" >> core/field.hpp
-git add -A && git commit -m "touch core"
-~/Downloads/agent/repo/open-research-agents/platform/scripts/scope_check.sh spatial main
-# 期望：OUT OF SCOPE: core/field.hpp，exit 1
+git add -A
+git commit -m "touch core"
+~/open-research-agents/platform/scripts/scope_check.sh spatial main
 ```
+
+Expected: `OUT OF SCOPE: core/field.hpp`, exit code 1.
 
 ---
 
-## 实测记录（2026-11-01，本机）
+## Results from the reference run (2026-11-01)
 
-方式 A 与方式 B 都已跑通，下面是真实结果：
-
-```text
-方式 A  bash scripts/validate-harness.sh   → 16 passed, 0 failed
-方式 B  agentlab run spatial                → 2m53s，2 个 commit，exit 0
-        agentlab gate spatial               → GATE PASS，order 0.9993
-        agentlab integrate spatial          → GATE PASS (mode: integration)
-        主检出 gate（仍是桩）                → GATE UNVERIFIED (exit 2)
-```
-
-worker 的报告状态 `ready`，报告里写了 gate 输出、commit SHA、已知局限，
-并且**主动指出**契约里没规定 `a < 0` 时该用哪一侧模板 —— 标为观察，没有擅自改。
-
-## 记录什么
-
-每跑一次，把下面这些保存下来（这是以后"平台是否可靠"的基线）：
+Method A and Method B both passed on the reference machine:
 
 ```text
-日期 / 平台 / 编译器
-worker 模型
-gate 三态的实际退出码（2 -> 0）
-observed_order 的实际值
-worker 改了哪些文件
-报告里有没有 need_decision
-token / 耗时（大概）
+Method A  bash scripts/validate-harness.sh   -> 27 passed, 0 failed
+Method B  agentlab run spatial               -> 2m53s, 2 commits, exit 0
+          agentlab gate spatial              -> GATE PASS, order 0.9993
+          agentlab integrate spatial         -> GATE PASS (mode: integration)
+          gate on the base checkout          -> GATE UNVERIFIED (exit 2)
 ```
 
-`agentlab status` 和 `.agentlab/repro/*.json` 已经自动记了大部分。
+The worker report status was `ready` and included gate output, the commit SHA, and
+known limitations. It also identified an unspecified `a < 0` case instead of
+deciding it silently.
 
 ---
 
-## 失败时怎么判断是谁的问题
+## What to record
 
-| 现象 | 大概率是 | 处理 |
+For each run, retain:
+
+```text
+date / platform / compiler
+worker model
+gate exit codes for each state (2 -> 0)
+observed_order
+files changed by the worker
+whether the report contains need_decision
+approximate token use and elapsed time
+```
+
+`agentlab status` and `.agentlab/repro/*.json` already record most of this.
+
+---
+
+## Failure attribution
+
+| Symptom | Likely cause | Action |
 |---|---|---|
-| gate 在实现前返回 0 | 验证算例没生效 | 检查 `VERIFY_CMD`、`run_all.sh` 是否真的执行 |
-| gate 在实现后返回 2 | worker 没改 `upwind.cpp`，或改了别处 | 看 `git diff` 和报告 |
-| `observed_order` 一直是 0 或 NaN | 残差恒为 0，或 ghost 层没填 | 看 worker 的 `residual` 实现 |
-| `OUT OF SCOPE: CMakeLists.txt` | 目标仓库 scope 太窄 | 这是设计选择：允许改构建就加进 scope |
-| worker 反复 `need_decision` | 契约不清楚 | 补 `.agentlab/contracts/`，这是人的活 |
-| worker 说完成了但没有 commit | worker 忘了提交 | `run_worker` 会判失败；看日志里的原因 |
+| Gate returns 0 before implementation | Verification is not effective | Check `VERIFY_CMD` and whether `run_all.sh` actually executes |
+| Gate returns 2 after implementation | Worker did not change `upwind.cpp`, or changed a different file | Inspect `git diff` and the report |
+| `observed_order` is 0 or NaN | Residual is zero, or ghost cells are not filled | Inspect the worker's `residual()` |
+| `OUT OF SCOPE: CMakeLists.txt` | Scope is too narrow for the task | Add the build file to scope, or avoid build changes |
+| Worker repeatedly reports `need_decision` | Contract is incomplete | Complete `.agentlab/contracts/`; this is human work |
+| Worker reports completion without a commit | Commit step was skipped | `run_worker` fails; inspect the log |
 
 ---
 
-## 已知的实验局限
+## Limitations of this experiment
 
-诚实说明，避免过度解读：
-
-1. **只有一个 workstream**。这个例子验证的是"单 worker 闭环"，不是"两个 worker 并行不冲突"。
-2. **没有多 rank / MPI**。`Comm` 是串行 no-op。
-3. **没有性能门禁**。只有正确性。
-4. **任务是结构化的**。真实的模糊需求会更多触发 `need_decision`，那才是常态。
-5. **假 worker 是确定性的**。方式 A 通过不代表模型也会通过，所以方式 B 必须跑。
-
-方式 A 证明的是**脚手架**，方式 B 证明的是**模型在这个脚手架里能不能干活**。
-两者都通过，才说明这套东西能用。
+1. It has one workstream. It validates a single-worker loop, not parallel
+   workstreams on disjoint code.
+2. It has no MPI or multi-rank behavior. `Comm` is a serial no-op.
+3. It has no performance gate; it validates correctness only.
+4. The task is structured. Ambiguous real requests are more likely to produce
+   `need_decision`, which is expected.
+5. The stand-in worker in Method A is deterministic. Method A validates the
+   harness, not model behavior. Method B is required for that.

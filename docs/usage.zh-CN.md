@@ -1,0 +1,183 @@
+[English](usage.md) | **中文**
+
+# 日常用法
+
+日常只需要 `agentlab` 一个命令。它使用**独立的 Pi agent 目录**运行 worker，
+因此不会修改日常使用的 `pi` 配置。
+
+## 1. Worker Pi 配置目录（一次性）
+
+```bash
+mkdir -p ~/.pi/agentlab
+PI_CODING_AGENT_DIR=~/.pi/agentlab pi /login     # 或复制 auth.json / models.json
+```
+
+不会向全局环境导出变量。`agentlab` 只在启动的子进程中设置 `PI_CODING_AGENT_DIR`。
+
+## 2. 配置（可选）
+
+`~/.config/agentlab/config.toml`：
+
+```toml
+[pi]
+bin = "pi"
+profile = "~/.pi/agentlab"
+args = "--model openai/gpt-5"
+
+[runtime]
+worktree_root = "~/agentlab-wt"
+```
+
+环境变量 `PI_BIN`、`PI_PROFILE`、`PI_ARGS`、`WT_ROOT` 优先于配置文件。
+
+## 3. 日常流程
+
+```bash
+agentlab doctor                  # 检查 Pi、profile、guard、目标仓库
+agentlab status                  # workstream、报告、门禁、待决事项
+
+agentlab run <ws>                # 一个 worker：规则 -> 代码 -> 门禁 -> 提交 -> 报告
+agentlab run <ws> --detach       # 在后台运行
+
+agentlab status                  # 查看门禁和报告状态
+agentlab gate <ws>               # 在 worker 工作树中运行门禁
+agentlab integrate <ws...>       # 合并并运行集成门禁
+```
+
+`agentlab` 不会合并 base 分支。需要人工审查 integration 分支后手动合并。
+
+## 4. 长时间运行与中断
+
+使用 `thinking=high` 的 worker 可能运行数分钟。不要占用终端：
+
+```bash
+agentlab run <ws> --detach
+```
+
+该命令打印 pid 和日志路径后立即返回。使用以下命令跟踪：
+
+```bash
+agentlab status          # 显示 "Running in background: <ws> pid NNNN"
+tail -f <repo>-wt/logs/<ws>-detached-*.log
+kill <pid>               # 或 kill -TERM <pid> 进行干净中断
+```
+
+前台 worker 被 Ctrl-C 中断时，`run_worker` 会在退出前打印工作树状态：
+
+```text
+run_worker: interrupted
+run_worker: worktree state: head=abc1234 commits_since_main=1 uncommitted=0
+run_worker: the work is committed; only the report or the final gate may be missing
+```
+
+detach 的 worker 退出时会删除 pid 文件，`status` 不再显示该进程。
+
+## 5. 调试 worker
+
+`agentlab status` 会列出最新的 worker 日志和最后一条可识别的错误。恢复的会话会保留历史中
+记录的模型。如果该模型已不可用，每次请求都会在 provider 调用中失败：
+
+```text
+OpenAI API error (400): model_not_found
+```
+
+`agentlab run` 会在消耗一次请求前检测该情况：
+
+```text
+run_worker: the <ws> session is pinned to an unavailable model: <provider>/<model>
+run_worker: fix it with: agentlab run <ws> --reset-session
+```
+
+处理方法：
+
+```bash
+agentlab run <ws> --reset-session     # 只清除该 workstream 的会话
+agentlab pi <ws> --reset-session      # 同样清除，然后打开交互式 Pi
+```
+
+需要进入 worker 的会话和工作树继续处理：
+
+```bash
+agentlab pi <ws>
+```
+
+## 6. 在正确的工作树中运行门禁
+
+`agentlab gate <ws>` 默认在 **worker 工作树**中运行。base 检出可能仍包含未实现的桩，
+在该检出上运行门禁会得到误导性的 `UNVERIFIED`。
+
+强制在当前检出中运行：
+
+```bash
+agentlab gate <ws> --here
+```
+
+`agentlab integrate` 会拒绝脏的 base 检出。未跟踪的 `.agentlab/repro/*.json`
+审计记录是唯一例外；它们会随 integration 一起提交。
+
+当唯一未提交的文件是生成的 repro 记录时，`agentlab status` 显示
+`WORKTREE=repro`。`clean` 表示没有未提交内容。
+
+## 7. 会话管理
+
+`--reset-session` 只清除该 workstream 的 Pi 会话：
+
+```bash
+agentlab run <ws> --reset-session
+agentlab pi <ws> --reset-session
+```
+
+当会话绑定到不可用模型，或新任务需要干净上下文时使用。
+
+## 8. 安装、更新、卸载
+
+```bash
+agentlab install <domain> <target> <repo>   # 安装 pack；不覆盖已有文件
+agentlab update                             # 更新工具，然后重新应用当前 pack
+agentlab update --no-pull                   # 只重新应用 pack
+agentlab uninstall                          # 从当前仓库移除 .agentlab
+agentlab uninstall --force --yes            # 工作树仍存在时也执行
+```
+
+`update` 执行三步：
+
+1. 对工具仓库执行 `git pull --ff-only`（工作区脏或使用 `--no-pull` 时跳过）；
+2. 使用 `.agentlab/.pack` 中记录的 domain 和 target 重新运行 `install`，
+   只添加不存在的文件；
+3. 重新生成 `.agentlab/AGENTS.md`；如果内容不同，写入
+   `.agentlab/AGENTS.md.new` 并打印 diff，不覆盖本地修改。
+
+`uninstall` 删除 `.agentlab/` 和生成的根 `AGENTS.md` 指针。它保留 `agent/*` 分支、
+`<repo>-wt/logs` 和 worker 的 Pi 配置。
+
+## 9. 边界
+
+`agentlab` 不会：
+
+- 修改 `~/.pi/agent`（日常 Pi 配置）；
+- 安装扩展或写入全局 Pi 设置；
+- 自行修改目标仓库的源码、构建或测试布局；
+- push、合并受保护分支或提交集群作业。
+
+## 10. 写入的文件
+
+| 路径 | 内容 |
+|---|---|
+| `<repo>/.agentlab/reports/` | 每个 workstream 一份报告 |
+| `<repo>/.agentlab/RFC/` | 待人工批准的提案 |
+| `<repo>/.agentlab/repro/` | 门禁和运行证据 |
+| `<repo>-wt/<ws>/` | worker 的 git 工作树 |
+| `<repo>-wt/logs/` | 每次 worker 运行的日志 |
+| `<repo>-wt/sessions/` | worker 的 Pi 会话 |
+| `<repo>-wt/run/` | detach worker 的 pid 文件 |
+
+## 11. 模式
+
+`.agentlab/target.env` 中的 `AGENTLAB_MODE`：
+
+| 模式 | worker 可写 | 门禁执行 |
+|---|---|---|
+| `audit` | 仅报告、RFC、repro | 仅 scope |
+| `worker` | 其 scope 路径 | scope + 构建 + 测试 + 验证 |
+
+`integration` 和 `release` 是门禁模式，不是 worker 模式。

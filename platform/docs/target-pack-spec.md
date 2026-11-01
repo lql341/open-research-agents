@@ -1,3 +1,5 @@
+**English** | [中文](target-pack-spec.zh-CN.md)
+
 # Target Pack Specification
 
 A **domain pack** is reusable across repositories. A **target pack** is one
@@ -121,7 +123,7 @@ exit 2  UNVERIFIED (not built, not registered, or not implemented yet)
 placeholder verification therefore cannot complete an integration.
 
 Use the repository's existing cases and baselines. Do not create a second
-numerical reference set just to make the gate pass.
+numerical reference set only to make the gate pass.
 
 ---
 

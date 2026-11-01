@@ -1,3 +1,5 @@
+**English** | [中文](AGENTS.zh-CN.md)
+
 # Platform rules (all agents, all domains)
 
 1. Only modify files allowed by `.agentlab/scope/<module>.txt`. Out-of-scope changes fail `scope_check`.

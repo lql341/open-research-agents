@@ -1,3 +1,5 @@
+**English** | [中文](README.zh-CN.md)
+
 # OneFLOW target
 
 This target installs the agent-lab collaboration pack into a OneFLOW checkout.

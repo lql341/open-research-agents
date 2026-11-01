@@ -1,3 +1,5 @@
+[English](WORKFLOW.md) | **中文**
+
 # 用 agentlab 开发 OneFLOW（完整示例）
 
 > **目标仓库示例。** 通用流程见 [`docs/workflow.md`](../../docs/workflow.md)。
@@ -17,13 +19,13 @@
 |---|---|---|---|
 | **原生 Pi** | `cd ~/OneFLOW && pi` | 读代码、探索、一次性小改、提问 | 没有，靠你自己看 |
 | **任务 worker** | `agentlab run <ws>` | 一个明确交付物：代码 + 测试 + 验证 + 提交 | 有 |
-| **交互 worker** | `agentlab pi <ws>` | 进 worker 的 worktree，用同一会话继续聊、排查 | 手动跑 gate |
+| **交互 worker** | `agentlab pi <ws>` | 进 worker 的 worktree，用同一会话继续对话和排查 | 手动运行 gate |
 
 选择原则：
 
 - **探索用原生 Pi。** “这个函数在哪”“为什么编译失败”“改个注释”不值得付任务和门禁的成本。
 - **已经知道要交付什么时，用任务 worker。** 你想要范围限制、独立工作树、提交和报告。
-- **任务 worker 跑完或卡住时，用交互 worker。** 在同一个 worktree、同一个会话里继续。
+- **任务 worker 完成或受阻时，用交互 worker。** 在同一个 worktree、同一个会话里继续。
 
 自然语言仍然可用。任务 worker 的请求写在 `.agentlab/TASKS.md`；worker 主要读任务板，
 不是读一段自由聊天。可以追加一句澄清：
@@ -83,7 +85,7 @@ Pending decisions (RFC status: proposed):
 .agentlab/repro/<workstream>-*
 ```
 
-不编译、不跑测试、不改代码。适合“还不完全信任这个代码库边界”的阶段。
+不编译、不执行测试、不改代码。适合“还不完全信任这个代码库边界”的阶段。
 
 两个审计已经完成。剩下的是人的工作：
 
@@ -149,7 +151,7 @@ tests/main/simu_context_parameter_test.cpp
 | 文件 | 必须包含 |
 |---|---|
 | `.agentlab/contracts/` | OneFLOW 在这个 workstream 的真实边界，不是通用模板。替换 `TODO` / `[CONFIRM]`。 |
-| `.agentlab/verification/run_all.sh` | 一个真实算例：跑现有 OneFLOW case + 现有 baseline，退出 `0` PASS / `1` FAIL / `2` UNVERIFIED。 |
+| `.agentlab/verification/run_all.sh` | 一个真实算例：运行现有 OneFLOW case + 现有 baseline，退出 `0` PASS / `1` FAIL / `2` UNVERIFIED。 |
 
 规则：
 
@@ -167,8 +169,8 @@ UNIT_CMD    ctest --test-dir build --output-on-failure
 ```
 
 切换前先在本机验证。OneFLOW 没有 `unit` 这个 CTest label，当前会发现约 1067 个测试；
-每个 worker 都跑全部会很慢。用 `ctest -R <pattern>` 收窄是改命令配置，不是改测试架构。
-不要在一个代码任务里顺手引入新的 label 体系。
+每个 worker 都运行全部会很慢。用 `ctest -R <pattern>` 收窄是改命令配置，不是改测试架构。
+不要在一个代码任务里一并引入新的 label 体系。
 
 ### 4.6 切模式
 
@@ -188,7 +190,7 @@ agentlab preflight runtime-io
 
 ---
 
-## 5. 跑、审、集成
+## 5. 运行、审查、集成
 
 ```bash
 cd ~/OneFLOW
@@ -208,10 +210,10 @@ cat .agentlab/reports/runtime-io.md
 # 4. 需要时进同一会话继续
 agentlab pi runtime-io
 
-# 5. 在 worker 分支上跑门禁（默认就是工作树）
+# 5. 在 worker 分支上运行门禁（默认就是工作树）
 agentlab gate runtime-io
 
-# 6. 合并到 integration 并跑集成门禁
+# 6. 合并到 integration 并运行集成门禁
 cd ~/OneFLOW
 agentlab integrate runtime-io
 
@@ -222,8 +224,8 @@ git merge --no-ff integration
 
 注意：
 
-- `agentlab gate <ws>` **默认在 worker 工作树里跑**。主检出通常还是桩，在主检出跑会得到
-  误导性的 `UNVERIFIED`。只有确实要跑当前检出的才用 `--here`。
+- `agentlab gate <ws>` **默认在 worker 工作树中运行**。主检出通常还是桩，在在主检出中运行会得到
+  误导性的 `UNVERIFIED`。只有确实要针对当前检出运行时才使用 `--here`。
 - `agentlab integrate` 会拒绝脏工作区。唯一例外是未跟踪的 `.agentlab/repro/*.json`，
   它们会随 integration 一起提交。
 - `agentlab status` 里 `WORKTREE=repro` 表示只有门禁生成的记录没提交，没有源码改动。
@@ -232,7 +234,7 @@ git merge --no-ff integration
 
 ## 6. 建议的第一个任务
 
-先做 `runtime-io`，不要一上来改求解器核心。
+先执行 `runtime-io`，不要在初始阶段修改求解器核心。
 
 ```text
 任务：    MPI 下 io_paths.txt 单写者
@@ -258,9 +260,9 @@ git merge --no-ff integration
 
 ## 7. 旧工作流 vs agentlab
 
-| 你以前 | agentlab |
+| 原有工作流 | agentlab |
 |---|---|
-| `pi` 在 OneFLOW 主检出里跑，直接改工作区 | worker 在独立 git worktree 里跑，主检出保持干净 |
+| `pi` 在 OneFLOW 主检出中运行，直接修改工作区 | worker 在独立 git worktree 中运行，主检出保持干净 |
 | 一个长会话不断累积上下文 | 每个 workstream 一个独立会话 |
 | 事后自己看 diff | worker 必须提交，否则 `run_worker` 判失败 |
 | 没有路径限制 | 改到 scope 外，`scope_check` 直接失败 |
@@ -273,7 +275,7 @@ git merge --no-ff integration
 
 ---
 
-## 8. 什么时候别用 agentlab
+## 8. 何时不使用 agentlab
 
 - “这个函数在哪” → 原生 Pi；
 - “为什么编译不过” → 原生 Pi；
@@ -314,7 +316,7 @@ worker 不使用主检出，也不使用你日常的 `~/.pi/agent`。
 | `.agentlab/target.env` 模式 | `audit` | 完成 4.1–4.5 后切 `worker` |
 | `.agentlab/contracts/` | 通用模板 | 换成 OneFLOW 真实边界 |
 | `.agentlab/verification/run_all.sh` | 占位 | 注册一个真实算例后才能 integration |
-| `UNIT_CMD` | 会跑约 1067 个 CTest | 日常用 `ctest -R` 收窄 |
+| `UNIT_CMD` | 会执行约 1067 个 CTest | 日常用 `ctest -R` 收窄 |
 | `dev` vs `upstream/hexin` | 已分叉 | 先决定本地 fork 还是上游兼容基线 |
 | 测试架构 | v0.1 冻结 | 不重构；按现有模式加测试 |
 | `Prj`/测试源清单 | 人所有 | 不要复制或重写 |

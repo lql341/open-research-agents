@@ -1,3 +1,5 @@
+[English](workflow.md) | **中文**
+
 # 用 agentlab 开发一个目标仓库
 
 状态：v0.1  
@@ -6,7 +8,7 @@
 `agentlab` 不替代 Pi。它在普通 Pi 会话外面加了四件事：
 **任务（task）**、**隔离工作树（worktree）**、**门禁（gate）**、**提交 + 报告**。
 
-只想先跑通一次，看 [`quickstart.zh-CN.md`](quickstart.zh-CN.md)。
+如果只需完成第一次运行，看 [`quickstart.zh-CN.md`](quickstart.zh-CN.md)。
 本页是目标无关的完整流程。完整示例见
 [OneFLOW target guide](../targets/oneflow/WORKFLOW.zh-CN.md)。
 
@@ -18,13 +20,13 @@
 |---|---|---|---|
 | **原生 Pi** | `cd <repo> && pi` | 读代码、探索、一次性小改、提问 | 没有，靠你自己看 |
 | **任务 worker** | `agentlab run <ws>` | 一个明确交付物：代码 + 测试 + 验证 + 提交 | 有 |
-| **交互 worker** | `agentlab pi <ws>` | 进 worker 的 worktree，用同一会话继续聊、排查 | 手动跑 gate |
+| **交互 worker** | `agentlab pi <ws>` | 进 worker 的 worktree，用同一会话继续对话和排查 | 手动运行 gate |
 
 选择原则：
 
 - **探索用原生 Pi。** “这个函数在哪”“为什么编译失败”“改个注释”不值得付任务和门禁的成本。
 - **已经知道要交付什么时，用任务 worker。** 你想要范围限制、独立工作树、提交和报告。
-- **任务 worker 跑完或卡住时，用交互 worker。** 在同一个 worktree、同一个会话里继续。
+- **任务 worker 完成或受阻时，用交互 worker。** 在同一个 worktree、同一个会话里继续。
 
 自然语言仍然可用。任务 worker 的请求写在 `.agentlab/TASKS.md`；worker 主要读任务板，
 不是读一段自由聊天。可以追加一句澄清：
@@ -93,7 +95,7 @@ agentlab status
 .agentlab/repro/<ws>-*
 ```
 
-不写代码、不编译、不跑测试。用审计去摸清入口、所有权、共享文件、测试覆盖和风险。
+不写代码、不编译、不执行测试。通过审计梳理入口、所有权、共享文件、测试覆盖和风险。
 先读报告和 RFC，再决定要不要让 worker 改代码。
 
 ---
@@ -186,7 +188,7 @@ agentlab preflight <ws>
 
 ---
 
-## 5. 跑、审、集成
+## 5. 运行、审查、集成
 
 ```bash
 cd <repo>
@@ -206,10 +208,10 @@ cat .agentlab/reports/<ws>.md
 # 4. 需要时进同一会话继续
 agentlab pi <ws>
 
-# 5. 在 worker 分支上跑门禁（默认就是工作树）
+# 5. 在 worker 分支上运行门禁（默认就是工作树）
 agentlab gate <ws>
 
-# 6. 合并到 integration 并跑集成门禁
+# 6. 合并到 integration 并运行集成门禁
 cd <repo>
 agentlab integrate <ws>
 
@@ -220,8 +222,8 @@ git merge --no-ff integration
 
 注意：
 
-- `agentlab gate <ws>` **默认在 worker 工作树里跑**。主检出可能还是桩，在主检出跑会得到
-  误导性的 `UNVERIFIED`。只有确实要跑当前检出的才用 `--here`。
+- `agentlab gate <ws>` **默认在 worker 工作树中运行**。主检出可能还是桩，在在主检出中运行会得到
+  误导性的 `UNVERIFIED`。只有确实要针对当前检出运行时才使用 `--here`。
 - `agentlab integrate` 会拒绝脏工作区。唯一例外是未跟踪的 `.agentlab/repro/*.json`，
   它们会随 integration 一起提交。
 - `agentlab status` 里 `WORKTREE=repro` 表示只有门禁生成的记录没提交，没有源码改动。
@@ -249,9 +251,9 @@ git merge --no-ff integration
 
 ## 7. 旧工作流 vs agentlab
 
-| 你以前 | agentlab |
+| 原有工作流 | agentlab |
 |---|---|
-| `pi` 在仓库主检出里跑，直接改工作区 | worker 在独立 git worktree 里跑，主检出保持干净 |
+| `pi` 在仓库主检出中运行，直接修改工作区 | worker 在独立 git worktree 中运行，主检出保持干净 |
 | 一个长会话不断累积上下文 | 每个 workstream 一个独立会话 |
 | 事后自己看 diff | worker 必须提交，否则 `run_worker` 判失败 |
 | 没有路径限制 | 改到 scope 外，`scope_check` 直接失败 |
@@ -264,7 +266,7 @@ git merge --no-ff integration
 
 ---
 
-## 8. 什么时候别用 agentlab
+## 8. 何时不使用 agentlab
 
 - “这个函数在哪” → 原生 Pi；
 - “为什么编译不过” → 原生 Pi；
@@ -307,5 +309,5 @@ worker 不使用主检出，也不使用你日常的 `~/.pi/agent`。
 | Verification | 占位 → worker gate `UNVERIFIED`，integration 拒绝 |
 | Unit 命令 | 全套测试可能太慢；用目标仓库自己的筛选方式收窄 |
 | Base 分支 | worker 从 `BASE_REF` 拉分支；让它符合目标仓库的分支策略 |
-| 测试架构 | 不要在代码任务里顺手重构 |
+| 测试架构 | 不要在代码任务中一并重构 |
 | 共享基础 | 保持人所有；不要用“顺便修一下”扩大 scope |

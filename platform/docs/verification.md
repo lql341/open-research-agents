@@ -1,3 +1,5 @@
+**English** | [中文](verification.zh-CN.md)
+
 # Verification Gates
 
 | Gate | Content | Result |

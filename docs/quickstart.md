@@ -1,6 +1,8 @@
+**English** | [中文](quickstart.zh-CN.md)
+
 # Quickstart
 
-Goal: one successful worker run in about five minutes, **without touching your
+Goal: complete one successful worker run in about five minutes, **without touching your
 real repository**.
 
 This page only gets you to the first success. Installation details are in
@@ -64,7 +66,7 @@ UNVERIFIED: S1 not implemented: first-order upwind residual
 GATE UNVERIFIED (mode: worker)
 ```
 
-That is the point: before implementation, the numerical gate is honestly
+This is intentional: before implementation, the numerical gate is honestly
 `UNVERIFIED`, not `PASS`.
 
 ---
@@ -129,7 +131,7 @@ GATE PASS (mode: integration)
 GATE PASS. Review the integration branch, then merge main after human approval.
 ```
 
-At this point the change is on the `integration` branch, waiting for you.
+At this point, the change is on the `integration` branch, waiting for you.
 `agentlab` does not merge the base branch.
 
 ---

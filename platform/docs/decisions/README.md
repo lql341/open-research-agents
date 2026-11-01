@@ -1,3 +1,5 @@
+**English** | [中文](README.zh-CN.md)
+
 # Decisions
 
 Short, human-readable records for choices that change how workers behave.

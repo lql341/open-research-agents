@@ -1,3 +1,5 @@
+**English** | [中文](0002-no-test-architecture-refactor.zh-CN.md)
+
 # 0002 — Do not refactor the target's test architecture
 
 - Date: 2026-11-01

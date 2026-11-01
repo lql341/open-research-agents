@@ -1,3 +1,5 @@
+**English** | [中文](WORKFLOW.zh-CN.md)
+
 # Developing OneFLOW with agentlab (worked example)
 
 > **Target-specific example.** The generic workflow is
@@ -8,7 +10,7 @@ Status: v0.1
 Audience: a solo developer who is used to `cd OneFLOW && pi` and typing requests in
 natural language.
 
-`agentlab` does not replace Pi. It adds four things around a normal Pi session:
+`agentlab` does not replace Pi. It adds four properties around a normal Pi session:
 a **task**, an **isolated worktree**, a **gate**, and a **commit + report**.
 
 ---
@@ -27,7 +29,7 @@ Rules of thumb:
   function" or a one-line comment fix.
 - **Use a task worker when you already know the deliverable** and want scope
   enforcement, an isolated worktree, a commit, and a report.
-- **Use an interactive worker when a task worker finished or got stuck** and you
+- **Use an interactive worker when a task worker finished or is blocked** and you
   want to continue in the same worktree with the same session.
 
 Natural language still works. For a task worker, put the request in
@@ -236,7 +238,7 @@ Important:
 
 - `agentlab gate <ws>` defaults to the **worker worktree**. The base checkout
   usually still holds the stub, so gating it would produce a misleading
-  `UNVERIFIED`. Use `--here` only when you really mean the current checkout.
+  `UNVERIFIED`. Use `--here` only when the current checkout is the intended target.
 - `agentlab integrate` refuses a dirty tree. Untracked `.agentlab/repro/*.json`
   records are the only exception; they are committed with the integration.
 - `agentlab status` shows `WORKTREE=repro` when the only uncommitted files are
@@ -301,7 +303,7 @@ or a traceable record.
 
 ---
 
-## 9. Where things live
+## 9. File layout
 
 ```text
 ~/OneFLOW/.agentlab/               target pack (committed on dev)
