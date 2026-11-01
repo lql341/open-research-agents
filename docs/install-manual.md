@@ -6,12 +6,15 @@
 
 ---
 
+> 平台支持（macOS / Linux / WSL / Windows Git Bash）见 [`platform-support.md`](platform-support.md)。
+> Windows 原生 PowerShell 不受支持。
+
 ## 0. 前置条件
 
 ```bash
 bash --version | head -1     # 需要 4.0+
 git --version                # 需要 2.32+
-python3 --version            # 需要 3.8+（status / repro 用）
+python3 --version            # 需要 3.8+（status / repro 用）；Windows 上 python 也可以
 pi --version                 # 需要 1.x
 ```
 

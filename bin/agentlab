@@ -61,6 +61,9 @@ load_config() {
 
 load_config
 
+# Windows may expose only `python`; keep python3 first but fall back.
+PYTHON="${PYTHON:-$(command -v python3 2>/dev/null || command -v python 2>/dev/null || true)}"
+
 # Environment wins over the config file.
 [ -n "$PI_BIN_ENV" ] && PI_BIN="$PI_BIN_ENV"
 [ -n "$PI_PROFILE_ENV" ] && PI_PROFILE="$PI_PROFILE_ENV"
@@ -158,8 +161,9 @@ case "$cmd" in
 
   status)
     has_agentlab
+    [ -n "$PYTHON" ] || { echo "agentlab: python3 (or python) is required for 'status'" >&2; exit 2; }
     with_profile
-    exec python3 "$AGENTLAB/scripts/status.py" "$@"
+    exec "$PYTHON" "$AGENTLAB/scripts/status.py" "$@"
     ;;
 
   preflight)

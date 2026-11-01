@@ -1,7 +1,10 @@
 /**
  * Worker command guard for Pi.
+ *
  * Blocks HPC cluster jobs, pushes, merges, and PR merges from worker sessions.
- * This is a guardrail, not a sandbox: a determined process can still bypass it.
+ * Covers both command tools Pi can expose: `bash` (macOS, Linux, Git Bash) and
+ * `powershell` (native Windows). This is a guardrail, not a sandbox: a
+ * determined process can still bypass it.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
@@ -12,10 +15,18 @@ const FORBIDDEN: ReadonlyArray<{ re: RegExp; reason: string }> = [
   { re: /\bgit\s+merge\b/i, reason: "Workers must not merge branches; integration is a separate step." },
 ];
 
+/** Tools that run a shell command, with the field holding the command text. */
+const SHELL_TOOLS: Readonly<Record<string, string>> = {
+  bash: "command",
+  powershell: "command",
+};
+
 export default function (pi: ExtensionAPI) {
   pi.on("tool_call", (event) => {
-    if (event.toolName !== "bash") return undefined;
-    const command = String(event.input.command ?? "");
+    const field = SHELL_TOOLS[event.toolName];
+    if (!field) return undefined;
+    const input = event.input as Record<string, unknown> | undefined;
+    const command = String(input?.[field] ?? "");
     for (const rule of FORBIDDEN) {
       if (rule.re.test(command)) {
         return { block: true, reason: rule.reason };

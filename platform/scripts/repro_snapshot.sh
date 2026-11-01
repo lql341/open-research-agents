@@ -11,7 +11,7 @@ cd "$ROOT"
 OUT=".agentlab/repro"
 mkdir -p "$OUT"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
-python3 - "$OUT/$LABEL-$TS.json" "$LABEL" "$MODE" "$STATUS" "$GATE_RC" <<'PY'
+PYTHON="${PYTHON:-python3}"; "$PYTHON" - "$OUT/$LABEL-$TS.json" "$LABEL" "$MODE" "$STATUS" "$GATE_RC" <<'PY'
 import json, subprocess, sys, platform, os, datetime
 out, label, mode, status, gate_rc = sys.argv[1:6]
 
@@ -33,7 +33,10 @@ rec = {
   "git_dirty": bool(sh("git status --porcelain")),
   "host": platform.node(),
   "kernel": platform.release(),
-  "cpu": sh("lscpu 2>/dev/null | grep 'Model name' | head -1 | cut -d: -f2- | xargs"),
+  "os": platform.platform(),
+  "cpu": sh("lscpu 2>/dev/null | grep 'Model name' | head -1 | cut -d: -f2- | xargs")
+         or sh("sysctl -n machdep.cpu.brand_string 2>/dev/null")
+         or sh("wmic cpu get name 2>/dev/null | sed -n 2p | xargs"),
   "cpu_threads": os.cpu_count(),
   "gpu": sh("nvidia-smi --query-gpu=name,driver_version --format=csv,noheader 2>/dev/null"),
   "toolchain": {

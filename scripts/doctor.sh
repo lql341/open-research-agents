@@ -11,14 +11,31 @@ echo "agentlab doctor"
 echo "home: $PLATFORM"
 echo
 
+echo "host"
+ok "bash ${BASH_VERSION} ($(command -v bash 2>/dev/null))"
+case "$(uname -s 2>/dev/null)" in
+  Darwin) ok "macOS $(sw_vers -productVersion 2>/dev/null)" ;;
+  Linux)  ok "Linux $(uname -r)" ;;
+  MINGW*|MSYS*|CYGWIN*) warn "Windows via $MACHTYPE (Git Bash/MSYS); native PowerShell is not supported, use Git Bash or WSL" ;;
+  *)      warn "unrecognised platform: $(uname -s 2>/dev/null)" ;;
+esac
+echo
+
 echo "tools"
-for t in git python3; do
+for t in git; do
   if command -v "$t" >/dev/null 2>&1; then
     ok "$t $("$t" --version 2>/dev/null | head -1)"
   else
     bad "$t not found"
   fi
 done
+if command -v python3 >/dev/null 2>&1; then
+  ok "python3 $(python3 --version 2>&1 | head -1)"
+elif command -v python >/dev/null 2>&1; then
+  warn "python3 not found; using python $(python --version 2>&1 | head -1)"
+else
+  bad "neither python3 nor python found (needed by agentlab status)"
+fi
 echo
 
 echo "pi"

@@ -67,6 +67,19 @@ Blocking issues : <none | list>
 
 如果 `pi` 缺失，停下来问人类要不要安装，不要自己装。
 
+### 平台判定
+
+根据 `uname -s` 的输出来决定：
+
+| 输出 | 处理 |
+|---|---|
+| `Darwin` / `Linux` | 继续 |
+| `MINGW*` / `MSYS*` / `CYGWIN*` | 继续，但在报告里注明 Windows via Git Bash |
+| 其它 | 停下，报告“未验证的平台”，不要尝试改脚本适配 |
+
+如果当前是 Windows 且没有 bash（说明你在 PowerShell 里），
+**停下**并告诉人类：请在 Git Bash 或 WSL 里重跑本协议。
+
 ---
 
 ## 第 1 步：确认两个路径
