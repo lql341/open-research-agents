@@ -236,6 +236,21 @@ git add -A && git commit -m "touch core"
 
 ---
 
+## 实测记录（2026-11-01，本机）
+
+方式 A 与方式 B 都已跑通，下面是真实结果：
+
+```text
+方式 A  bash scripts/validate-harness.sh   → 16 passed, 0 failed
+方式 B  agentlab run spatial                → 2m53s，2 个 commit，exit 0
+        agentlab gate spatial               → GATE PASS，order 0.9993
+        agentlab integrate spatial          → GATE PASS (mode: integration)
+        主检出 gate（仍是桩）                → GATE UNVERIFIED (exit 2)
+```
+
+worker 的报告状态 `ready`，报告里写了 gate 输出、commit SHA、已知局限，
+并且**主动指出**契约里没规定 `a < 0` 时该用哪一侧模板 —— 标为观察，没有擅自改。
+
 ## 记录什么
 
 每跑一次，把下面这些保存下来（这是以后"平台是否可靠"的基线）：

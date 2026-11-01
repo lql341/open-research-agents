@@ -111,6 +111,39 @@ def report_status(text: str | None) -> tuple[str, str]:
     return status, f"{commit} {updated}".strip()
 
 
+ERROR_MARKERS = (
+    "OpenAI API error",
+    "API error",
+    "Error:",
+    "error:",
+    "FAILED:",
+    "worker made no commit",
+    "pinned to an unavailable model",
+    "Cannot read",
+)
+
+
+def recent_log(wt_root: Path, workstream: str) -> tuple[str, str] | None:
+    """Newest worker log for a workstream, with its last recognisable error line."""
+    log_dir = wt_root / "logs"
+    if not log_dir.is_dir():
+        return None
+    files = sorted(log_dir.glob(f"{workstream}-*.log"), key=lambda p: p.stat().st_mtime)
+    if not files:
+        return None
+    last = files[-1]
+    try:
+        lines = last.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return None
+    error = ""
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith(ERROR_MARKERS):
+            error = stripped[:150]
+    return last.name, error
+
+
 def pending_rfcs(root: Path, agentlab: Path, ref: str | None) -> list[tuple[str, str]]:
     """RFCs with `Status: proposed`, read from the worker branch when it exists."""
     items: list[tuple[str, str]] = []
@@ -177,6 +210,7 @@ def main(argv: list[str]) -> int:
             dirty = bool(git(wt, "status", "--porcelain"))
             wt_state = "dirty" if dirty else "clean"
         ahead = git(root, "rev-list", "--count", f"{base}..{branch}") if has_branch else "0"
+        log = recent_log(wt_root, ws)
         rows.append({
             "workstream": ws,
             "report": status,
@@ -186,6 +220,8 @@ def main(argv: list[str]) -> int:
             "worktree": wt_state,
             "branch": "yes" if has_branch else "no",
             "ahead": ahead,
+            "log": (log or ("", ""))[0],
+            "log_error": (log or ("", ""))[1],
         })
 
     base_exists = bool(git(root, "rev-parse", "--verify", base))
@@ -223,6 +259,15 @@ def main(argv: list[str]) -> int:
         if row["report_meta"]:
             print(f"  {row['workstream']}: {row['report_meta']}")
     if any(row["report_meta"] for row in rows):
+        print()
+
+    logs = [row for row in rows if row["log"]]
+    if logs:
+        print("Recent worker logs:")
+        for row in logs:
+            print(f"  {row['workstream']:<14}{row['log']}")
+            if row["log_error"]:
+                print(f"                {row['log_error']}")
         print()
 
     if rfcs_pending:

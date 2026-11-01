@@ -128,6 +128,51 @@ if ( cd "$LIFE_REPO" && "$ROOT/bin/agentlab" uninstall --yes >/tmp/agentlab-life
 ( cd "$LIFE_REPO" && "$ROOT/bin/agentlab" uninstall --yes >/dev/null 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: second uninstall should be a no-op"; }
 rm -rf "$LIFE"
 
+echo "== worker session guards"
+SESS="$TMP/sess"
+SESS_REPO="$SESS/repo"
+WT="$SESS/wt"
+mkdir -p "$SESS_REPO" "$WT/sessions" "$WT/logs"
+cp -R "$ROOT/tests/fixtures/mini-target/." "$SESS_REPO/"
+( cd "$SESS_REPO" && git init -q -b main && git add -A && git commit -q -m init ) >/dev/null
+cat > "$WT/sessions/2026-01-01T00-00-00-000Z_agentlab-spatial.jsonl" <<'JSONL'
+{"type":"session","version":3,"id":"agentlab-spatial"}
+{"type":"model_change","provider":"ghost","modelId":"gone-1"}
+JSONL
+cat > "$SESS/fake-pi.sh" <<'SH'
+#!/bin/sh
+if [ "$1" = "--list-models" ]; then
+  printf 'provider  model                       context  max-out\n'
+  printf 'real      good-model                  1M       8K\n'
+  exit 0
+fi
+echo "fake pi ran"
+exit 0
+SH
+chmod +x "$SESS/fake-pi.sh"
+
+set +e
+( cd "$SESS_REPO" && WT_ROOT="$WT" PI_BIN="$SESS/fake-pi.sh" "$ROOT/bin/agentlab" run spatial >/tmp/agentlab-pin.log 2>&1 )
+rc=$?
+set -e
+[ $rc -eq 3 ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: expected exit 3 for a session pinned to an unavailable model, got $rc"; tail -6 /tmp/agentlab-pin.log; }
+grep -q "pinned to an unavailable model" /tmp/agentlab-pin.log && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: no pin diagnostic"; }
+grep -q -- "--reset-session" /tmp/agentlab-pin.log && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: no reset hint"; }
+
+set +e
+( cd "$SESS_REPO" && WT_ROOT="$WT" PI_BIN="$SESS/fake-pi.sh" "$ROOT/bin/agentlab" run spatial --reset-session >/tmp/agentlab-reset.log 2>&1 )
+rc=$?
+set -e
+[ $rc -ne 3 ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: --reset-session still refused (exit 3)"; }
+grep -q "cleared the spatial session history" /tmp/agentlab-reset.log && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: --reset-session did not clear the session"; }
+ls "$WT/sessions"/*agentlab-spatial*.jsonl >/dev/null 2>&1 && { fail=$((fail+1)); echo "FAILED: session file survived --reset-session"; } || pass=$((pass+1))
+
+echo "== status surfaces the last worker error"
+printf 'preflight: ok\nOpenAI API error (400): model_not_found gpt-5.5\n' > "$WT/logs/spatial-20260101T000000Z.log"
+( cd "$SESS_REPO" && WT_ROOT="$WT" "$ROOT/bin/agentlab" status >/tmp/agentlab-status-log.log 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: status with logs"; }
+grep -q "Recent worker logs" /tmp/agentlab-status-log.log && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: status does not list worker logs"; }
+grep -q "OpenAI API error" /tmp/agentlab-status-log.log && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: status does not surface the worker error"; }
+
 echo "----"
 echo "smoke: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

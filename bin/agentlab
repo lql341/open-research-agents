@@ -174,10 +174,20 @@ case "$cmd" in
     ;;
 
   run)
-    [ $# -ge 1 ] || { echo "usage: agentlab run <workstream> [extra...]" >&2; exit 2; }
+    AGENTLAB_RESET_SESSION=0
+    run_args=()
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --reset-session|--new-session) AGENTLAB_RESET_SESSION=1; shift ;;
+        --) shift; while [ $# -gt 0 ]; do run_args+=("$1"); shift; done ;;
+        *) run_args+=("$1"); shift ;;
+      esac
+    done
+    [ ${#run_args[@]} -ge 1 ] || { echo "usage: agentlab run <workstream> [--reset-session] [extra...]" >&2; exit 2; }
     has_agentlab
     with_profile
-    exec "$AGENTLAB/platform/scripts/run_worker.sh" "$@"
+    export AGENTLAB_RESET_SESSION
+    exec "$AGENTLAB/platform/scripts/run_worker.sh" "${run_args[@]}"
     ;;
 
   gate)
@@ -210,8 +220,17 @@ case "$cmd" in
     ;;
 
   pi)
-    [ $# -ge 1 ] || { echo "usage: agentlab pi <workstream>" >&2; exit 2; }
-    ws="$1"; shift
+    reset=0
+    pi_args=()
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --reset-session|--new-session) reset=1; shift ;;
+        *) pi_args+=("$1"); shift ;;
+      esac
+    done
+    [ ${#pi_args[@]} -ge 1 ] || { echo "usage: agentlab pi <workstream> [--reset-session]" >&2; exit 2; }
+    ws="${pi_args[0]}"
+    rest=("${pi_args[@]:1}")
     has_agentlab
     with_profile
     root="$(repo_root)"
@@ -221,11 +240,12 @@ case "$cmd" in
     wt="$wt_root/$ws"
     [ -d "$wt" ] || { echo "agentlab: no worktree for '$ws' at $wt; run: agentlab run $ws" >&2; exit 2; }
     mkdir -p "$wt_root/sessions" "$wt_root/logs"
+    [ "$reset" -eq 1 ] && rm -f "$wt_root/sessions"/*"agentlab-$ws"*.jsonl
     cd "$wt"
     exec "$PI_BIN" \
       --session-id "agentlab-$ws" --session-dir "$wt_root/sessions" --name "agentlab-$ws" \
       -e "$AGENTLAB/platform/extensions/guard.ts" \
-      ${PI_ARGS:-} "$@"
+      ${PI_ARGS:-} ${rest[@]+"${rest[@]}"}
     ;;
 
   clean)

@@ -44,6 +44,32 @@ agentlab integrate runtime-io numerics   # merge + integration gate
 # review the integration branch yourself, then merge
 ```
 
+## 4.0 When a worker keeps failing for an unrelated-looking reason
+
+A resumed session keeps the model recorded in its history. If that model is no
+longer available (profile changed, provider gone, account limit), every turn
+fails inside the provider call and the message looks unrelated:
+
+```text
+OpenAI API error (400): model_not_found
+```
+
+`agentlab run` now detects this before spending a turn:
+
+```text
+run_worker: the spatial session is pinned to an unavailable model: openai/gpt-5.5
+run_worker: fix it with: agentlab run spatial --reset-session
+```
+
+Fix it with:
+
+```bash
+agentlab run spatial --reset-session     # clears only that workstream's session
+agentlab pi spatial --reset-session      # same, then open interactively
+```
+
+`agentlab status` also shows the newest worker log and its last error line.
+
 ## 4. Debugging a worker
 
 ```bash

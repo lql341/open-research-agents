@@ -74,6 +74,56 @@ fi
 if [ -n "$EXTRA" ]; then PROMPT="$PROMPT
 $EXTRA"; fi
 
+SESS_DIR="$WT_ROOT/sessions"
+mkdir -p "$SESS_DIR" "$WT_ROOT/logs"
+if [ "${AGENTLAB_RESET_SESSION:-0}" = "1" ]; then
+  rm -f "$SESS_DIR"/*"agentlab-$MODULE"*.jsonl
+  echo "run_worker: cleared the $MODULE session history"
+fi
+
+# A resumed Session keeps the model recorded in its history. If that model is no
+# longer available (for example because the worker profile changed), every turn
+# fails with a provider error that looks unrelated. Detect it before spending a
+# turn, and say exactly how to fix it.
+model_of_session() {
+  local python_bin="${PYTHON:-python3}"
+  command -v "$python_bin" >/dev/null 2>&1 || return 0
+  "$python_bin" - "$SESS_DIR" "agentlab-$MODULE" <<'PY2'
+import glob, json, os, sys
+directory, prefix = sys.argv[1], sys.argv[2]
+files = sorted(glob.glob(os.path.join(directory, "*%s*.jsonl" % prefix)), key=os.path.getmtime)
+if not files:
+    raise SystemExit(0)
+provider = model = None
+with open(files[-1], encoding="utf-8", errors="replace") as stream:
+    for line in stream:
+        try:
+            record = json.loads(line)
+        except ValueError:
+            continue
+        if record.get("type") == "model_change":
+            provider = record.get("provider")
+            model = record.get("modelId")
+if provider and model:
+    print("%s\t%s" % (provider, model))
+PY2
+}
+
+pinned="$(model_of_session)"
+if [ -n "$pinned" ]; then
+  pinned_provider="${pinned%%$'\t'*}"
+  pinned_model="${pinned#*$'\t'}"
+  available="$("${PI_BIN:-pi}" --list-models 2>/dev/null | awk 'NR>1 { print $1 "\t" $2 }')"
+  if [ -n "$available" ] && ! printf '%s\n' "$available" | grep -qxF "$pinned_provider$'\t'$pinned_model"; then
+    echo "run_worker: the $MODULE session is pinned to an unavailable model: $pinned_provider/$pinned_model" >&2
+    echo "run_worker: available models:" >&2
+    printf '%s\n' "$available" | head -10 | sed 's/^/    /' >&2
+    echo "run_worker: fix it with: agentlab run $MODULE --reset-session" >&2
+    echo "run_worker: or set a default in ${PI_CODING_AGENT_DIR:-~/.pi/agent}/settings.json" >&2
+    exit 3
+  fi
+fi
+
 LOG="$WT_ROOT/logs/$MODULE-$(date -u +%Y%m%dT%H%M%SZ).log"
 GUARD=(-e "$(cd "$PLATFORM/.." && pwd)/extensions/guard.ts")
 if [ "${PI_SESSION:-1}" = "0" ]; then
