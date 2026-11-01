@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Usage (inside target repo/worktree): gate.sh [module]
-# GATE_MODE=worker|integration|release (default: worker)
+# Usage (inside target repo/worktree): gate.sh [workstream]
+# GATE_MODE=audit|worker|integration|release (default: AGENTLAB_MODE or worker)
 # Exit: 0 PASS, 1 FAIL, 2 UNVERIFIED
 set -uo pipefail
 PLATFORM="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,7 +10,7 @@ cd "$ROOT"
 # shellcheck disable=SC1091
 source .agentlab/domain.env
 MODULE="${1:-}"
-GATE_MODE="${GATE_MODE:-worker}"
+GATE_MODE="${GATE_MODE:-${AGENTLAB_MODE:-worker}}"
 fail=0
 unverified=0
 
@@ -24,11 +24,27 @@ step() {
 if [ -n "$MODULE" ]; then
   step scope "$PLATFORM/scope_check.sh" "$MODULE" "${BASE_REF:-main}"
 fi
+
+if [ "$GATE_MODE" = "audit" ]; then
+  status=pass
+  [ $fail -ne 0 ] && status=fail
+  case "$status" in
+    pass) gate_rc=0 ;;
+    *) gate_rc=1 ;;
+  esac
+  "$PLATFORM/repro_snapshot.sh" "${MODULE:-audit}" "$GATE_MODE" "$status" "$gate_rc" || true
+  echo "----"
+  UPPER=$(printf '%s' "$status" | tr '[:lower:]' '[:upper:]')
+  echo "GATE $UPPER (mode: audit, read-only)"
+  [ "$status" = "pass" ] && exit 0
+  exit 1
+fi
+
 if [ $fail -eq 0 ]; then
-  step build run "${BUILD_CMD:?BUILD_CMD missing in .agentlab/domain.env}"
+  step build run "${BUILD_CMD:?BUILD_CMD missing in .agentlab/target.env or domain.env}"
 fi
 if [ $fail -eq 0 ]; then
-  step unit run "${UNIT_CMD:?UNIT_CMD missing in .agentlab/domain.env}"
+  step unit run "${UNIT_CMD:?UNIT_CMD missing in .agentlab/target.env or domain.env}"
 fi
 if [ $fail -eq 0 ] && [ -n "${VERIFY_CMD:-}" ]; then
   echo "== verification"
@@ -52,7 +68,6 @@ status=pass
 [ $fail -ne 0 ] && status=fail
 [ $fail -eq 0 ] && [ $unverified -eq 1 ] && status=unverified
 
-# Integration refuses UNVERIFIED; keep the explicit status and exit 2.
 if [ "$GATE_MODE" = "integration" ] && [ "$status" = "unverified" ]; then
   echo "integration gate requires G3 numerical verification; register a real case."
 fi

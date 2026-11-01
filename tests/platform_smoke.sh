@@ -7,7 +7,7 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 TARGET="$TMP/cfd-mini"
 
-cp -R "$ROOT/examples/cfd-mini" "$TARGET"
+cp -R "$ROOT/tests/fixtures/mini-target" "$TARGET"
 cd "$TARGET"
 git init -q -b main
 git add .
@@ -23,6 +23,21 @@ if "$ROOT/platform/scripts/preflight.sh" spatial >/tmp/agentlab-preflight.log 2>
 else
   fail=$((fail+1)); cat /tmp/agentlab-preflight.log
 fi
+
+echo "== audit preflight"
+if AGENTLAB_MODE=audit "$ROOT/platform/scripts/preflight.sh" spatial >/tmp/agentlab-preflight-audit.log 2>&1; then
+  pass=$((pass+1))
+else
+  fail=$((fail+1)); cat /tmp/agentlab-preflight-audit.log
+fi
+
+echo "== audit gate (expect PASS=0)"
+set +e
+AGENTLAB_MODE=audit "$ROOT/platform/scripts/gate.sh" spatial >/tmp/agentlab-gate-audit.log 2>&1
+rc=$?
+set -e
+[ "$rc" -eq 0 ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "expected 0, got $rc"; tail -20 /tmp/agentlab-gate-audit.log; }
+grep -q "GATE PASS (mode: audit" /tmp/agentlab-gate-audit.log && pass=$((pass+1)) || { fail=$((fail+1)); echo "missing audit PASS"; }
 
 echo "== worker gate (expect UNVERIFIED=2)"
 set +e

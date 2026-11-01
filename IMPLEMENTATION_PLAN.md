@@ -63,6 +63,26 @@ v0.1 不做：
 
 ---
 
+## 1A. v0.1 目标适配：OneFLOW，而不是 cfd-mini
+
+- 真实目标仓库是 OneFLOW；`tests/fixtures/mini-target` 只是平台 smoke test fixture。
+- OneFLOW 是 runtime/task 架构，不是 starter 的 spatial/temporal 两块干净模块。直接让两个 worker 并行改代码会重叠。
+- v0.1 先开两个只读审计 worker：
+  - `runtime-io`：`codes/main/`、`codes/io/`、`tests/main/`、`tests/io/`、`doc/AI_CONTEXT.md`
+  - `numerics`：`codes/ns/`、`codes/residual/`、`codes/grad/`、`codes/solver/`、`codes/lhs/`、`codes/time/`、`codes/unsteady/`、`codes/update/`、相关 tests
+- 审计产出：入口/调用者、状态与资源所有权、共享文件、测试覆盖、缺失契约、风险、可并行的 scope 提案、需要人确认的问题。
+- 人确认 scopes/contracts 后，把 `target.env` 的 `AGENTLAB_MODE` 从 `audit` 改为 `worker`，再开代码任务。
+- 这样避免在 OneFLOW 这种紧耦合代码库里过早并行编辑。
+
+### 1A.1 首次审计记录（2026-11-01）
+
+- OneFLOW `.agentlab/` 已安装并提交到 `dev`（`7328dc504`）。
+- 两个只读审计已运行并合入 `dev`（merge commits `883640c07`、`94a7161b8`）：
+  - `runtime-io`：369 行报告 + RFC；发现 `io_paths.txt` 多 rank 写者过滤缺失、`TeardownCase` 无测试、测试源清单重复。
+  - `numerics`：449 行报告 + RFC；发现 `HybridRoe()` 空实现、`linearTwoStepMethods` 越界退化、`SolverState::Converge()` 恒真、数值循环无实例化测试、显式 RK 无基线。
+- 两份报告都停留在 `need_decision`/`ready`，没有声称任何未运行的测试通过。
+- 下一步：人工回答 RFC 问题，确认两个不重叠的代码 workstream，切 `AGENTLAB_MODE=worker`。
+
 ## 2. 总体架构
 
 ```text
