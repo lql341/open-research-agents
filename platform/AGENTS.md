@@ -11,6 +11,8 @@
 8. Every performance or accuracy conclusion must include a repro record (see report template).
 9. Do not create tasks beyond the current one, or expand your own permissions or budget.
 10. Do not push, merge protected branches, or submit HPC jobs (`sbatch`/`srun`).
+11. Do not restructure the target's build or test architecture. Add tests only in the
+    pattern the target already uses. If a gap needs a build change, write an RFC and stop.
 
 ## Workflow
 

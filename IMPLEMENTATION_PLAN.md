@@ -81,7 +81,14 @@ v0.1 不做：
   - `runtime-io`：369 行报告 + RFC；发现 `io_paths.txt` 多 rank 写者过滤缺失、`TeardownCase` 无测试、测试源清单重复。
   - `numerics`：449 行报告 + RFC；发现 `HybridRoe()` 空实现、`linearTwoStepMethods` 越界退化、`SolverState::Converge()` 恒真、数值循环无实例化测试、显式 RK 无基线。
 - 两份报告都停留在 `need_decision`/`ready`，没有声称任何未运行的测试通过。
-- 下一步：人工回答 RFC 问题，确认两个不重叠的代码 workstream，切 `AGENTLAB_MODE=worker`。
+- **决策（2026-11-01）：不改目标仓库的测试架构。** runtime-io 提出的共享
+  `oneflow_case_runtime` 目标不采纳；`TeardownCase` 的覆盖缺口作为已知问题记录，
+  由人工决定是否值得单独处理。理由：这是对大仓库的构建重构，没有独立的性能或正确性
+  收益，且编译宏传播风险高，属于人所有的工作。见
+  `platform/docs/decisions/0002-no-test-architecture-refactor.md`。
+- worker 只允许按现有模式加测试：一个测试目标列出它需要的生产源，不新建测试入口、
+  不改构建系统。
+- 下一步：人工确认两个不重叠的代码 workstream，切 `AGENTLAB_MODE=worker`。
 
 ## 2. 总体架构
 

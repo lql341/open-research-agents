@@ -70,11 +70,22 @@ Both audits have run and their reports are merged into `dev`:
 - `.agentlab/reports/numerics.md`
 - `.agentlab/RFC/numerics-2026-11-01-boundary-contracts.md`
 
-The two human decisions currently blocking the next step:
+### Decided: no test-architecture refactor
 
-1. runtime-io: validate the lifecycle contract through a shared production target (A),
-   or only through the real executable + `test/` cases (B)?
-2. numerics: complete dual-time or explicitly declare it unsupported and fail fast?
+The runtime-io RFC proposed a shared `oneflow_case_runtime` target so a test could
+link `TeardownCase`. **Rejected for v0.1.** OneFLOW keeps its current test
+architecture; `TeardownCase` stays a recorded gap. See
+`platform/docs/decisions/0002-no-test-architecture-refactor.md`.
+
+Workers may add tests only in the existing pattern (one target listing the
+production sources it needs). They may not restructure the build or add a second
+test entry point.
+
+### Still open (human)
+
+1. numerics: complete dual-time, or declare it unsupported and fail fast?
+2. Which two disjoint code workstreams to open first, now that no build
+   refactor is allowed.
 
 ## After the audits
 
