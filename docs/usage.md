@@ -54,6 +54,27 @@ Opens interactive Pi **in that workstream's worktree**, resuming the same
 session (`agentlab-<workstream>`) with the guard extension loaded, so you see
 exactly what the worker saw.
 
+## 4.1 Install, update, uninstall
+
+```bash
+agentlab install cfd oneflow /path/to/repo   # add the pack (never overwrites)
+agentlab update                              # update the tool, then re-apply the pack here
+agentlab update --no-pull                    # re-apply the pack only
+agentlab uninstall                           # remove .agentlab from this repo (asks first)
+agentlab uninstall --force --yes             # also when worktrees still exist
+```
+
+`update` does three things:
+
+1. `git pull --ff-only` on the tool repository (skipped when dirty or when `--no-pull`);
+2. re-runs `install` with the domain/target recorded in `.agentlab/.pack`,
+   which only adds files that do not exist yet;
+3. rebuilds `.agentlab/AGENTS.md` from the current rules and, if it differs,
+   writes `.agentlab/AGENTS.md.new` plus a diff instead of overwriting your edits.
+
+`uninstall` removes `.agentlab/` and the generated root `AGENTS.md` pointer, and
+keeps `agent/*` branches, `<repo>-wt/logs`, and the worker Pi profile.
+
 ## 5. What agentlab never does
 
 - It never edits your `~/.pi/agent` (your daily Pi).

@@ -16,12 +16,17 @@ SRC_TARGET="$HOME_DIR/targets/$TARGET_NAME"
 DEST="$TARGET_REPO/.agentlab"
 mkdir -p "$DEST"/reports "$DEST"/RFC "$DEST"/repro "$DEST"/templates "$DEST"/sessions
 
+ADDED="$DEST/.install-added"
+: > "$ADDED"
+
 copy_missing() {
   local from="$1" to="$2"
   (cd "$from" && find . -type f) | while IFS= read -r f; do
-    if [ ! -e "$to/$f" ]; then
-      mkdir -p "$(dirname "$to/$f")"
-      cp -p "$from/$f" "$to/$f"
+    rel="${f#./}"
+    if [ ! -e "$to/$rel" ]; then
+      mkdir -p "$(dirname "$to/$rel")"
+      cp -p "$from/$rel" "$to/$rel"
+      printf '%s\n' "${to#"$TARGET_REPO"/}/$rel" >> "$ADDED"
     fi
   done
 }
@@ -43,17 +48,15 @@ if [ -d "$SRC_TARGET/scope" ]; then
 fi
 
 if [ ! -f "$DEST/AGENTS.md" ]; then
-  cat "$PLATFORM/AGENTS.md" > "$DEST/AGENTS.md"
-  printf '\n---\n\n' >> "$DEST/AGENTS.md"
-  cat "$DEST/AGENTS.domain.md" >> "$DEST/AGENTS.md"
+  bash "$HOME_DIR/scripts/render_agents.sh" "$DEST/AGENTS.md" "$PLATFORM/AGENTS.md" \
+    "$DEST/AGENTS.domain.md" "$DEST/AGENTS.target.md" "$TARGET_NAME"
+  printf '%s\n' ".agentlab/AGENTS.md" >> "$ADDED"
 else
   echo "existing .agentlab/AGENTS.md kept"
 fi
 
-if [ -f "$DEST/AGENTS.target.md" ] && ! grep -q "^# --- target:" "$DEST/AGENTS.md"; then
-  printf '\n---\n\n# --- target: %s ---\n\n' "$TARGET_NAME" >> "$DEST/AGENTS.md"
-  cat "$DEST/AGENTS.target.md" >> "$DEST/AGENTS.md"
-fi
+# Record which pack this .agentlab came from, so 'agentlab update' can re-apply it.
+printf 'DOMAIN=%s\nTARGET=%s\n' "$DOMAIN" "$TARGET_NAME" > "$DEST/.pack"
 
 # Pi loads AGENTS.md from the repo root, not .agentlab/. Do not overwrite an
 # existing OneFLOW AGENTS.md; just tell the operator.
@@ -74,5 +77,17 @@ fi
 
 for d in reports RFC repro sessions; do touch "$DEST/$d/.gitkeep"; done
 [ -f "$DEST/verification/run_all.sh" ] && chmod +x "$DEST/verification/run_all.sh" || true
+# Only report files that survived: target scopes may replace domain scopes.
+KEPT="$(mktemp)"
+while IFS= read -r rel; do
+  [ -n "$rel" ] && [ -e "$TARGET_REPO/$rel" ] && printf '%s\n' "$rel" >> "$KEPT"
+done < "$ADDED"
+count=$(wc -l < "$KEPT" | tr -d ' ')
+if [ "$count" -gt 0 ]; then
+  echo "added $count file(s):"
+  sed 's/^/  + /' "$KEPT"
+fi
+rm -f "$KEPT"
+rm -f "$ADDED"
 echo "installed domain=$DOMAIN target=$TARGET_NAME -> $DEST"
-echo "next: review .agentlab/, commit it to the target repo, then run preflight/run_worker"
+echo "next: review .agentlab/, commit it to the target repo, then run agentlab preflight"

@@ -94,6 +94,40 @@ grep -q "PROFILE=$TMP_PROFILE" /tmp/agentlab-run.log && pass=$((pass+1)) || { fa
 if [ -z "${PI_CODING_AGENT_DIR:-}" ]; then pass=$((pass+1)); else fail=$((fail+1)); echo "FAILED: agentlab leaked PI_CODING_AGENT_DIR into the caller"; fi
 rm -rf "$TMP_PROFILE"
 
+echo "== install / update / uninstall lifecycle"
+LIFE="$(mktemp -d)"
+LIFE_REPO="$LIFE/repo"
+# A clean repository with no pre-existing .agentlab: this exercises the
+# install path rather than the "keep what is already there" path.
+mkdir -p "$LIFE_REPO"
+( cd "$LIFE_REPO" && git init -q -b main && echo "# lifecycle" > README.md \
+  && git add . && git commit -q -m init ) >/dev/null
+
+if "$ROOT/bin/agentlab" install cfd oneflow "$LIFE_REPO" >/tmp/agentlab-life-install.log 2>&1; then pass=$((pass+1)); else fail=$((fail+1)); echo "FAILED: install"; cat /tmp/agentlab-life-install.log; fi
+grep -q "installed domain=cfd target=oneflow" /tmp/agentlab-life-install.log && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: install did not report the pack"; }
+[ -f "$LIFE_REPO/.agentlab/.pack" ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: .agentlab/.pack missing"; }
+[ -f "$LIFE_REPO/.agentlab/AGENTS.md" ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: generated AGENTS.md missing"; }
+grep -q "# --- target: oneflow ---" "$LIFE_REPO/.agentlab/AGENTS.md" && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: target rules not merged"; }
+[ -f "$LIFE_REPO/.agentlab/scope/spatial.txt" ] && { fail=$((fail+1)); echo "FAILED: domain scope survived a target-scoped install"; } || pass=$((pass+1))
+
+( cd "$LIFE_REPO" && sed -i.bak 's/^BASE_REF=dev/BASE_REF=main/' .agentlab/target.env && rm -f .agentlab/target.env.bak && git add -A && git commit -q -m install ) >/dev/null
+
+# Second install must not add anything.
+if "$ROOT/bin/agentlab" install cfd oneflow "$LIFE_REPO" >/tmp/agentlab-life-reinstall.log 2>&1; then pass=$((pass+1)); else fail=$((fail+1)); echo "FAILED: reinstall"; fi
+grep -q "added " /tmp/agentlab-life-reinstall.log && { fail=$((fail+1)); echo "FAILED: reinstall added files"; } || pass=$((pass+1))
+
+# update with no platform change reports up to date.
+if ( cd "$LIFE_REPO" && "$ROOT/bin/agentlab" update --no-pull >/tmp/agentlab-life-update.log 2>&1 ); then pass=$((pass+1)); else fail=$((fail+1)); echo "FAILED: update"; cat /tmp/agentlab-life-update.log; fi
+grep -q "AGENTS.md is up to date" /tmp/agentlab-life-update.log && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: update did not compare AGENTS.md"; }
+
+# uninstall removes the pack and the generated pointer.
+if ( cd "$LIFE_REPO" && "$ROOT/bin/agentlab" uninstall --yes >/tmp/agentlab-life-uninstall.log 2>&1 ); then pass=$((pass+1)); else fail=$((fail+1)); echo "FAILED: uninstall"; cat /tmp/agentlab-life-uninstall.log; fi
+[ -d "$LIFE_REPO/.agentlab" ] && { fail=$((fail+1)); echo "FAILED: .agentlab survived uninstall"; } || pass=$((pass+1))
+[ -f "$LIFE_REPO/AGENTS.md" ] && { fail=$((fail+1)); echo "FAILED: generated AGENTS.md survived uninstall"; } || pass=$((pass+1))
+# uninstall on a clean repo is a no-op success.
+( cd "$LIFE_REPO" && "$ROOT/bin/agentlab" uninstall --yes >/dev/null 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: second uninstall should be a no-op"; }
+rm -rf "$LIFE"
+
 echo "----"
 echo "smoke: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

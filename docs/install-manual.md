@@ -318,21 +318,67 @@ agentlab gate <workstream> --mode integration   # 合并前必须 PASS
 
 ---
 
+## 9.5 更新
+
+```bash
+cd <platform-repo>
+agentlab update
+```
+
+它会依次做三件事：
+
+1. 对 `open-research-agents` 做 `git pull --ff-only`（工作区脏或加 `--no-pull` 时跳过）；
+2. 用 `.agentlab/.pack` 里记录的 domain/target 重新应用 pack，**只补新增文件，不覆盖已有文件**；
+3. 重新生成 `.agentlab/AGENTS.md`，若与你当前的文件不同，会写 `.agentlab/AGENTS.md.new`
+   并打印 diff，**不覆盖你的修改**。
+
+更新后：
+
+```bash
+cd <repo>
+git status --short
+agentlab status
+```
+
+有新增文件就提交：
+
+```bash
+git add .agentlab && git commit -m "agentlab: apply pack updates"
+```
+
+如果看到 `.agentlab/AGENTS.md.new`，人工合并后再：
+
+```bash
+mv .agentlab/AGENTS.md.new .agentlab/AGENTS.md
+git add .agentlab/AGENTS.md && git commit -m "agentlab: merge rule updates"
+```
+
 ## 10. 卸载
 
 ```bash
-# 1) 删目标仓库里的协作包（会删掉报告和 RFC，先备份）
-rm -rf <repo>/.agentlab
+cd <repo>
+agentlab uninstall
+```
 
-# 2) 删 worker 工作树
+它会：
+
+- 删掉 `.agentlab/`（报告、RFC、repro 一并删除，先备份）；
+- 只有在根 `AGENTS.md` 是本工具生成的那份指针时才删它，你自己写的会保留；
+- 如果还有 worker 工作树，会**拒绝执行**，提示你先 `agentlab clean <ws>`；加 `--force` 可强制。
+
+它会保留：`agent/*` 分支、`<repo>-wt/logs`、以及 worker 的 Pi 配置。
+
+再清理剩下的：
+
+```bash
 agentlab clean <workstream...>
 rm -rf <repo>-wt
 
-# 3) 删 CLI 和配置
+# 可选：删 CLI 和配置
 rm -f ~/.local/bin/agentlab
 rm -rf ~/.config/agentlab
 
-# 4) 删 worker 的 Pi 配置（可选，会丢 worker 的登录状态）
+# 可选：删 worker 的 Pi 配置（会丢 worker 的登录状态）
 rm -rf ~/.pi/agentlab
 ```
 

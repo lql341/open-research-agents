@@ -90,6 +90,8 @@ agentlab - run Pi-based collaborative workstreams in a target repository
   agentlab doctor
 
   agentlab install <domain> <target> <repo>   install a domain+target pack into <repo>/.agentlab
+  agentlab update [--no-pull]                 update the tool, then re-apply the pack to the current repo
+  agentlab uninstall [--force] [--yes]        remove .agentlab from the current repo
   agentlab status [--json]                    workstream, report, gate and pending decisions
   agentlab preflight <workstream>
   agentlab run <workstream> [extra...]        start a worker (mode comes from .agentlab/target.env)
@@ -142,6 +144,16 @@ case "$cmd" in
   install)
     [ $# -eq 3 ] || { echo "usage: agentlab install <domain> <target> <repo>" >&2; exit 2; }
     exec "$AGENTLAB/platform/scripts/install_target.sh" "$1" "$2" "$3"
+    ;;
+
+  update)
+    with_profile
+    exec "$AGENTLAB/scripts/update.sh" "$@"
+    ;;
+
+  uninstall)
+    with_profile
+    exec "$AGENTLAB/scripts/uninstall.sh" "$@"
     ;;
 
   status)

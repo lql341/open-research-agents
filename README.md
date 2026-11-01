@@ -92,6 +92,9 @@ git checkout dev && git merge --no-ff audit-integration
 ### 常用命令
 
 ```bash
+agentlab install cfd oneflow <repo>   # 安装
+agentlab update                       # 更新工具 + 重新应用 pack
+agentlab uninstall                    # 卸载（保留分支与日志）
 agentlab doctor                 # Pi、profile、guard、目标仓库
 agentlab config                 # 解析后的配置
 agentlab status [--json]        # workstream / 报告 / gate / 待决 RFC

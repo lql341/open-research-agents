@@ -247,6 +247,17 @@ agentlab preflight <workstream>
 
 ---
 
+## 第 8.5 步：维护（只在人类要求时执行）
+
+| 人类要求 | 你执行 | 注意 |
+|---|---|---|
+| 更新 | `cd <platform-repo> && agentlab update` | 先确认平台仓库工作区干净；有 `.agentlab/AGENTS.md.new` 时**不要**自动覆盖，把 diff 给人看 |
+| 更新某个目标仓库 | `cd <target-repo> && agentlab update` | 只补新增文件；提交前 `git status --short` 确认只有 `.agentlab/` |
+| 卸载 | `cd <target-repo> && agentlab uninstall` | 需要人类确认；有工作树时会拒绝，先 `agentlab clean` |
+| 清理工作树 | `agentlab clean <ws...>` | 只删 worktree，保留分支和日志 |
+
+不要自己决定“顺便清理一下”。卸载会删掉报告和 RFC。
+
 ## 第 9 步：交付报告
 
 严格按这个格式输出，不要加别的章节：
