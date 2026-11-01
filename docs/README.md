@@ -60,5 +60,5 @@ They are configuration and evidence, not documentation pages.
   the top.
 - Code, configuration, tasks, contracts, scope files, templates, and test fixtures
   are not translated. They are read by workers and must remain unambiguous.
-- `IMPLEMENTATION_PLAN.md` is a historical planning artifact and remains in Chinese.
-  Current behavior is documented in this directory and in the target guides.
+- `IMPLEMENTATION_PLAN.md` is a historical planning artifact and has a Chinese
+  counterpart. Current behavior is documented in this directory and in the target guides.

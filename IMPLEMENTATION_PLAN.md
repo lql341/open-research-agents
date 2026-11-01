@@ -1,112 +1,122 @@
-# Open Research Agents — 综合实施方案
+**English** | [中文](IMPLEMENTATION_PLAN.zh-CN.md)
 
-**状态：** Draft v1.0（综合稿）  
-**综合来源：**
-- `cfd-agents-starter.zip`：CFD 单仓库脚手架、AGENTS、contracts、scope/gate/integrate 脚本
-- `agent-lab_1.zip`：`platform/` + `domains/` 分层、install_domain、repro_snapshot、治理文档
-- 上一版 `IMPLEMENTATION_PLAN.md` 草案：v0.1–v0.5 长期路线
-- 评审反馈：commit 纪律、preflight、core API contract、strict verification、command/push guard、session 策略
+# Open Research Agents — Consolidated Implementation Plan
 
-**首个领域：** CFD  
-**首选 Agent Runtime：** Pi  
-**v0.1 实现语言：** Bash + Markdown（可执行规范）  
-**v0.2 起实现语言：** TypeScript（编排器/任务引擎）  
-**长期目标：** 面向科学计算与 AI4S 的开源、可验证、人类治理的多智能体研发平台
+> **Historical planning artifact.** This document records the v1.0 synthesis and
+> its design rationale. The current repository uses `examples/validation/target`,
+> `tests/fixtures/mini-target`, and `targets/oneflow`; the current process is in
+> [`docs/workflow.md`](docs/workflow.md).
 
----
+**Status:** Draft v1.0 (consolidated)
+**Sources:**
+- `cfd-agents-starter.zip`: single-repository CFD scaffold, AGENTS, contracts, scope/gate/integrate scripts
+- `agent-lab_1.zip`: `platform/` + `domains/` layering, install_domain, repro_snapshot, governance documents
+- Previous `IMPLEMENTATION_PLAN.md` draft: v0.1–v0.5 roadmap
+- Review feedback: commit discipline, preflight, core API contract, strict verification, command/push guard, session policy
 
-## 0. 一句话
-
-> **v0.1 = agent-lab 的平台/领域分层 + starter 的 CFD 契约与任务 + 一个真实可编译的 `cfd-mini` 目标仓库 + 更硬的 gate。先单 worker，后双 worker；TypeScript 平台推迟到 v0.2。**
-
----
-
-## 1. 综合结论
-
-### 1.1 采用什么
-
-1. **采用 `agent-lab` 的平台/领域分层**  
-   `platform/` 放通用规则、脚本、模板；`domains/<domain>/` 放契约、scope、任务、验证、复现字段；`install_domain.sh` 把领域包装进目标仓库的 `.agentlab/`。  
-   理由：平台脚本在目标仓库之外，worker 改不了 gate；同一套平台可服务 OneFLOW、KylinFlow 等多个仓库。
-
-2. **保留 `cfd-agents-starter` 的 CFD 具体内容**  
-   `AGENTS` 铁律、`interfaces.md`、`data_layout.md`、`TASKS.md`、scope 思路、mock ODE / MMS 解耦测试，合并进 `domains/cfd/`。
-
-3. **v0.1 不写 TypeScript 平台**  
-   Bash 脚本就是可执行规范。先把 scope → build → unit → verification → integration 跑通，再把语义固化成 TypeScript 编排器。  
-   理由：现在缺的不是平台代码，而是“真实 C++ 工程 + 真实验证 + 真实权限检查”。
-
-4. **新增 `examples/cfd-mini`**  
-   两个 zip 都没有可编译的求解器代码，worker 无法真正开跑。v0.1 必须提供一个独立 git 仓库形态的最小 CFD 工程：`Field/Mesh/Comm + CMake + CTest + 一个 MMS 算例`。  
-   它是 target repo 的 fixture，不是平台仓库的子目录。
-
-5. **新增硬门禁**  
-   - `preflight.sh`：contracts 还有 TODO/[CONFIRM]、core/CMake/unit 测试缺失时，拒绝启动 worker；
-   - `gate.sh` 三态：`PASS / FAIL / UNVERIFIED`；
-   - integration gate 要求 `G3 numerical = PASS`；worker gate 允许 `UNVERIFIED`，但报告必须写明；
-   - worker 必须 commit 到 `agent/<module>`，报告写 commit SHA；
-   - `guard.ts` + `pre-push`：拦 `sbatch/srun`、`git push`、`gh pr merge`；
-   - session 策略：`--session-id` 或 `--no-session` 显式选择，不留下无限增长的会话。
-
-### 1.2 不做什么
-
-v0.1 不做：
-
-- 隐式时间积分器（T3 保持 `blocked`，先 RFC）；
-- MPI/GPU 并行性能优化（正确性全绿后单独串行任务）；
-- TypeScript 任务引擎 / SQLite / 审批队列；
-- 多项目、多租户、Web 面板；
-- 自动合并关键求解器代码；
-- 自动提交 HPC 集群作业；
-- 跨项目长期记忆；
-- 由 agent 批准 agent。
+**First domain:** CFD
+**Preferred agent runtime:** Pi
+**v0.1 implementation language:** Bash + Markdown (executable specification)
+**From v0.2:** TypeScript (orchestrator and task engine)
+**Long-term goal:** an open, verifiable, human-governed multi-agent research platform for scientific computing and AI4S
 
 ---
 
-## 1A. v0.1 目标适配：OneFLOW，而不是 cfd-mini
+## 0. Summary
 
-- 真实目标仓库是 OneFLOW；`tests/fixtures/mini-target` 只是平台 smoke test fixture。
-- OneFLOW 是 runtime/task 架构，不是 starter 的 spatial/temporal 两块干净模块。直接让两个 worker 并行改代码会重叠。
-- v0.1 先开两个只读审计 worker：
-  - `runtime-io`：`codes/main/`、`codes/io/`、`tests/main/`、`tests/io/`、`doc/AI_CONTEXT.md`
-  - `numerics`：`codes/ns/`、`codes/residual/`、`codes/grad/`、`codes/solver/`、`codes/lhs/`、`codes/time/`、`codes/unsteady/`、`codes/update/`、相关 tests
-- 审计产出：入口/调用者、状态与资源所有权、共享文件、测试覆盖、缺失契约、风险、可并行的 scope 提案、需要人确认的问题。
-- 人确认 scopes/contracts 后，把 `target.env` 的 `AGENTLAB_MODE` 从 `audit` 改为 `worker`，再开代码任务。
-- 这样避免在 OneFLOW 这种紧耦合代码库里过早并行编辑。
+> **v0.1 = the agent-lab platform/domain split + the starter's CFD contracts and tasks + a real compilable target repository + a stricter gate. Single worker first, then two workers; the TypeScript platform is deferred to v0.2.**
 
-### 1A.1 首次审计记录（2026-11-01）
+---
 
-- OneFLOW `.agentlab/` 已安装并提交到 `dev`（`7328dc504`）。
-- 两个只读审计已运行并合入 `dev`（merge commits `883640c07`、`94a7161b8`）：
-  - `runtime-io`：369 行报告 + RFC；发现 `io_paths.txt` 多 rank 写者过滤缺失、`TeardownCase` 无测试、测试源清单重复。
-  - `numerics`：449 行报告 + RFC；发现 `HybridRoe()` 空实现、`linearTwoStepMethods` 越界退化、`SolverState::Converge()` 恒真、数值循环无实例化测试、显式 RK 无基线。
-- 两份报告都停留在 `need_decision`/`ready`，没有声称任何未运行的测试通过。
-- **决策（2026-11-01）：不改目标仓库的测试架构。** runtime-io 提出的共享
-  `oneflow_case_runtime` 目标不采纳；`TeardownCase` 的覆盖缺口作为已知问题记录，
-  由人工决定是否值得单独处理。理由：这是对大仓库的构建重构，没有独立的性能或正确性
-  收益，且编译宏传播风险高，属于人所有的工作。见
-  `platform/docs/decisions/0002-no-test-architecture-refactor.md`。
-- worker 只允许按现有模式加测试：一个测试目标列出它需要的生产源，不新建测试入口、
-  不改构建系统。
-- 下一步：人工确认两个不重叠的代码 workstream，切 `AGENTLAB_MODE=worker`。
+## 1. Consolidated decisions
 
-## 2. 总体架构
+### 1.1 What to adopt
+
+1. **Adopt the `agent-lab` platform/domain split.**
+   `platform/` holds generic rules, scripts, and templates; `domains/<domain>/` holds contracts, scope, tasks, verification, and repro fields; `install_domain.sh` installs a domain into a target repository under `.agentlab/`.
+   Rationale: platform scripts live outside the target repository, so a worker cannot modify the gate; the same platform can serve OneFLOW, KylinFlow, and other repositories.
+
+2. **Keep the CFD-specific content from `cfd-agents-starter`.**
+   The AGENTS rules, `interfaces.md`, `data_layout.md`, `TASKS.md`, scope model, and mock-ODE/MMS decoupled tests are merged into `domains/cfd/`.
+
+3. **Do not write a TypeScript platform in v0.1.**
+   Bash scripts are the executable specification. Validate scope → build → unit → verification → integration first, then codify the semantics in a TypeScript orchestrator.
+   Rationale: the missing piece is a real C++ project, real verification, and real permission checks, not more platform code.
+
+4. **Add a real target repository.**
+   Neither ZIP contains compilable solver code, so a worker cannot run a real task. v0.1 must provide a minimal CFD project in the form of an independent Git repository: `Field/Mesh/Comm + CMake + CTest + one MMS case`.
+   It is a fixture for the target repository, not a subdirectory of the platform repository.
+
+5. **Add hard gates.**
+   - `preflight.sh`: refuse to start a worker when contracts still contain TODO/[CONFIRM], or core/CMake/unit tests are missing;
+   - `gate.sh` has three states: `PASS / FAIL / UNVERIFIED`;
+   - the integration gate requires `G3 numerical = PASS`; the worker gate may allow `UNVERIFIED`, but the report must state it;
+   - the worker must commit to `agent/<module>` and record the commit SHA in the report;
+   - `guard.ts` + `pre-push`: block `sbatch/srun`, `git push`, and `gh pr merge`;
+   - session policy: choose `--session-id` or `--no-session` explicitly; do not accumulate unbounded sessions.
+
+### 1.2 Out of scope
+
+v0.1 does not include:
+
+- an implicit time integrator (T3 remains `blocked`; write an RFC first);
+- MPI/GPU parallel performance optimization (a separate serial task after correctness is green);
+- a TypeScript task engine / SQLite / approval queue;
+- multiple projects, multi-tenancy, or a web panel;
+- automatic merging of critical solver code;
+- automatic submission of HPC cluster jobs;
+- cross-project long-term memory;
+- agent approval of other agents.
+
+---
+
+## 1A. v0.1 target adaptation: OneFLOW instead of cfd-mini
+
+- The real target repository is OneFLOW; `tests/fixtures/mini-target` is only a platform smoke-test fixture.
+- OneFLOW is a runtime/task codebase, not the starter's clean spatial/temporal split. Letting two workers edit code immediately would create overlapping scopes.
+- v0.1 starts with two read-only audit workers:
+  - `runtime-io`: `codes/main/`, `codes/io/`, `tests/main/`, `tests/io/`, `doc/AI_CONTEXT.md`
+  - `numerics`: `codes/ns/`, `codes/residual/`, `codes/grad/`, `codes/solver/`, `codes/lhs/`, `codes/time/`, `codes/unsteady/`, `codes/update/`, relevant tests
+- Audit outputs: entry points and callers, state and resource ownership, shared files, test coverage, missing contracts, risks, a proposal for disjoint scopes, and one question for the human.
+- After the human confirms scopes and contracts, change `AGENTLAB_MODE` in `target.env` from `audit` to `worker`, then start code tasks.
+- This avoids premature parallel editing in a tightly coupled codebase such as OneFLOW.
+
+### 1A.1 First audit record (2026-11-01)
+
+- OneFLOW `.agentlab/` is installed and committed on `dev` (`7328dc504`).
+- Both read-only audits ran and were merged into `dev` (merge commits `883640c07`, `94a7161b8`):
+  - `runtime-io`: a 369-line report + RFC; found the missing multi-rank writer filter for `io_paths.txt`, no test for `TeardownCase`, and duplicated test source lists.
+  - `numerics`: a 449-line report + RFC; found the empty `HybridRoe()` implementation, bounds regression in `linearTwoStepMethods`, `SolverState::Converge()` returning true unconditionally, no instantiated numerical-loop tests, and no explicit-RK baseline.
+- Both reports remain at `need_decision`/`ready`; neither claims that an unexecuted test passed.
+- **Decision (2026-11-01): do not refactor the target repository's test architecture.**
+  The shared `oneflow_case_runtime` target proposed by runtime-io is rejected.
+  The `TeardownCase` coverage gap is recorded as a known issue for a human to
+  prioritize. Rationale: this is a build refactor of a large repository with no
+  independent performance or correctness benefit, and with high risk in compile
+  definition propagation. It is human-owned work. See
+  `platform/docs/decisions/0002-no-test-architecture-refactor.md`.
+- Workers may add tests only in the existing pattern: one test target lists the
+  production sources it needs; no new test entry point and no build-system change.
+- Next step: the human confirms two disjoint code workstreams and switches
+  `AGENTLAB_MODE` to `worker`.
+
+## 2. Overall architecture
 
 ```text
 Human Principal
-      │ 授权、审批、优先级
+      │ authorization, approval, priorities
       ▼
-Lead / Reviewer（v0.1 = 人工操作的 Pi 主会话，可只读）
+Lead / Reviewer (v0.1 = human-operated Pi main session, read-only capable)
       │
       ▼
-Platform（目标仓库之外，worker 不可修改）
+Platform (outside the target repository; workers cannot modify it)
   - scope_check / preflight / gate / integrate
   - run_worker / repro_snapshot / guard
-  - 模板与治理文档
+  - templates and governance documents
       │
       ▼
 Target Repo
-  .agentlab/            ← install_domain.sh 安装
+  .agentlab/            ← installed by install_domain.sh
     AGENTS.md
     contracts/
     scope/
@@ -116,7 +126,7 @@ Target Repo
     RFC/
     repro/
     sessions/
-  core/                 ← CFD 数值基础，人工维护，worker 只读
+  core/                 ← CFD numerical foundation, human-owned, worker read-only
   modules/spatial/      ← Worker A
   modules/temporal/     ← Worker B
   tests/
@@ -129,7 +139,7 @@ Gates
 Integration branch → Human approval → main
 ```
 
-### 2.1 仓库布局
+### 2.1 Repository layout
 
 ```text
 open-research-agents/
@@ -173,66 +183,66 @@ open-research-agents/
 │       └── repro_fields.yaml
 │
 ├── examples/
-│   └── cfd-mini/          # 独立 git 仓库骨架，用于 demo/CI
+│   └── cfd-mini/          # standalone Git repository skeleton for demo/CI
 │       ├── CMakeLists.txt
 │       ├── core/
 │       ├── modules/
 │       ├── tests/
 │       └── .gitignore
 │
-├── tests/                 # 平台脚本测试
+├── tests/                 # platform script tests
 ├── docs/
 ├── AGENTS.md
 ├── README.md
 └── IMPLEMENTATION_PLAN.md
 ```
 
-**命名澄清：**
+**Naming clarification:**
 
-- `platform/`：平台内核（脚本、规则、模板），不是 CFD 数值核心；
-- `domains/cfd/`：CFD 领域包；
-- 目标仓库里的 `core/`：CFD 的 `Field / Mesh / Comm`，人工维护，agent 只读；
-- 目标仓库里的 `.agentlab/`：领域包安装位置，worker 只读契约与验证。
+- `platform/`: platform kernel (scripts, rules, templates), not the CFD numerical core;
+- `domains/cfd/`: CFD domain pack;
+- `core/` inside the target repository: CFD `Field / Mesh / Comm`, human-owned, agent read-only;
+- `.agentlab/` inside the target repository: installed domain pack location; workers read contracts and verification but cannot modify them.
 
 ---
 
-## 3. 角色与权限
+## 3. Roles and permissions
 
-| 角色 | v0.1 由谁承担 | 职责 | 禁止 |
+| Role | v0.1 owner | Responsibility | Prohibited |
 |---|---|---|---|
-| Human Principal | 你 | 填契约、确认接口、注册验证、审批合并 | — |
-| Lead / Reviewer | 你的 Pi 主会话 | 拆任务、审核 diff、跑 integration gate、提出审批建议 | 不直接改模块代码；不代替人批准 |
-| Worker Spatial | `pi -p` / `pi --session-id` | 实现空间离散、测试、报告、commit | 不改 core/contracts/scripts/verification；不 push/merge |
-| Worker Temporal | 同上 | 实现时间积分、mock ODE 测试、报告、commit | 同上 |
-| Platform | Bash 脚本 | 确定性执行 scope/gate/integrate/复现快照 | 不做技术判断 |
+| Human Principal | You | Fill contracts, confirm interfaces, register verification, approve merges | — |
+| Lead / Reviewer | Your Pi main session | Decompose tasks, review diffs, run the integration gate, recommend approvals | Do not edit module code directly; do not approve on behalf of a human |
+| Worker Spatial | `pi -p` / `pi --session-id` | Implement spatial discretization, tests, report, commit | Do not modify core/contracts/scripts/verification; do not push/merge |
+| Worker Temporal | Same | Implement time integration, mock-ODE tests, report, commit | Same |
+| Platform | Bash scripts | Deterministic scope/gate/integrate/repro execution | No technical judgment |
 
-**职责分离：**
+**Separation of duties:**
 
-- Worker 写代码；
-- Lead/Reviewer 审核；
-- Human 批准契约、验证基准、合并 main；
-- 任何 agent 的“通过”都不等于人类批准。
+- Workers write code;
+- the Lead/Reviewer reviews;
+- the human approves contracts, verification baselines, and merges to main;
+- no agent approval is equivalent to human approval.
 
 ---
 
-## 4. CFD v0.1 契约
+## 4. CFD v0.1 contracts
 
-### 4.1 数据布局（必须人工填写）
+### 4.1 Data layout (human-owned)
 
-`domains/cfd/contracts/data_layout.md` 保持 TODO 清单，但 v0.1 必须先做出最小决定：
+`domains/cfd/contracts/data_layout.md` keeps the TODO list, but v0.1 must make these minimum decisions first:
 
-- 结构化 1D 网格；
-- 守恒变量顺序固定；
-- ghost 宽度固定；
-- AoS（v0.1 简单优先；SoA 作为后续 RFC）；
-- `double`；
-- MPI 暂不启用，`Comm` 提供串行 no-op 与 `mpirun -np 4` 的接口占位。
+- structured 1D mesh;
+- fixed conserved-variable order;
+- fixed ghost width;
+- AoS (simpler for v0.1; SoA requires a later RFC);
+- `double`;
+- MPI disabled initially; `Comm` provides a serial no-op and an interface placeholder for `mpirun -np 4`.
 
-**在 `data_layout.md` 填完前，worker 不得启动。**
+**A worker must not start before `data_layout.md` is complete.**
 
-### 4.2 Core API（新增 `contracts/core_api.md`）
+### 4.2 Core API (new `contracts/core_api.md`)
 
-两个 zip 只给了 `Field/Mesh/Comm` 类名，没给方法。worker 会猜，然后 spatial/temporal 各发明一套。v0.1 必须固定最小面：
+The two ZIPs provide only class names (`Field/Mesh/Comm`), not methods. A worker would guess, and spatial/temporal would each invent a different surface. v0.1 must fix the minimum API:
 
 ```cpp
 namespace cfd {
@@ -243,7 +253,7 @@ public:
   const double* data() const;
   std::size_t size() const;
 
-  Field like() const;                    // 同布局，未初始化
+  Field like() const;                    // same layout, uninitialized
   void copy(const Field& other);
   void axpy(double a, const Field& x);   // this += a*x
   double norm2() const;
@@ -273,14 +283,14 @@ public:
 } // namespace cfd
 ```
 
-规则：
+Rules:
 
-- `Field` 的 `like/copy/axpy/norm2` 是 v0.1 必需，temporal 的 RK 不能自己发明；
-- `Mesh` 只读；v0.1 结构化 1D，2D/3D 方法可先返回 1；
-- `Comm` 串行时 no-op；MPI 实现留到 v0.2；
-- 不允许 worker 修改 `core/`。
+- `Field::like/copy/axpy/norm2` are required in v0.1; temporal RK must not invent its own;
+- `Mesh` is read-only; for structured 1D, 2D/3D methods may return 1;
+- `Comm` is a no-op in serial mode; MPI implementation is deferred to v0.2;
+- workers must not modify `core/`.
 
-### 4.3 模块接口（修正版）
+### 4.3 Module interfaces (corrected)
 
 ```cpp
 namespace cfd {
@@ -289,12 +299,12 @@ class ISpatialOperator {
 public:
   virtual ~ISpatialOperator() = default;
 
-  // 计算残差 R；U 只读。
-  // halo 交换由 spatial 在 residual 内部完成；调用者不预先交换。
+  // Compute residual R; U is read-only.
+  // Halo exchange is performed by spatial inside residual; the caller does not pre-exchange.
   virtual void residual(const Field& U, double t, Field& R) const = 0;
 
-  // 本进程内的稳定性时间步上限（CFL=1）。
-  // 全局最小值由 time integrator 通过 Comm 归约。
+  // Local stability time-step limit (CFL=1).
+  // The global minimum is reduced by the time integrator through Comm.
   virtual double max_stable_dt(const Field& U, double t) const = 0;
 };
 
@@ -302,8 +312,8 @@ class ITimeIntegrator {
 public:
   virtual ~ITimeIntegrator() = default;
 
-  // U 原地推进；t 更新时间；dt 由调用者给定。
-  // comm 用于 max_stable_dt 的全局归约。
+  // Advance U in place; update t; dt is provided by the caller.
+  // comm is used for the global reduction of max_stable_dt.
   virtual void advance(Field& U, double& t, double dt,
                        const ISpatialOperator& L, Comm& comm) = 0;
 
@@ -313,66 +323,66 @@ public:
 } // namespace cfd
 ```
 
-必须确认的约定：
+Conventions that must be confirmed:
 
-- `dU/dt = R(U,t)`，`R` 已包含符号与单元体积归一化；
-- `U` 只读，`R` 输出；
-- halo 交换由 spatial 负责；
-- 边界条件由 spatial 通过 `residual()` 体现；
-- `max_stable_dt` 是空间稳定性建议值，不是最终 dt；
-- 时间步裁剪由 temporal 负责；
-- RK 工作数组由 temporal 用 `Field::like()` 分配。
+- `dU/dt = R(U,t)`, and `R` includes the sign and cell-volume normalization;
+- `U` is read-only; `R` is output;
+- halo exchange is spatial's responsibility;
+- boundary conditions are represented by spatial through `residual()`;
+- `max_stable_dt` is a spatial stability suggestion, not the final dt;
+- time-step clipping is temporal's responsibility;
+- RK work arrays are allocated by temporal with `Field::like()`.
 
-**未确认前，worker 只能写 `need_decision`，不能猜。**
+**Before confirmation, a worker may only write `need_decision`; it must not guess.**
 
-### 4.4 解耦测试
+### 4.4 Decoupled tests
 
-- Temporal：`tests/mocks` 提供线性/非线性 ODE 算子，实现 `ISpatialOperator`，验证时间阶数；
-- Spatial：MMS 人造解，直接比较 `residual()` 与解析时间导数，验证空间阶数；
-- 联调只在 integration 分支通过真实验证算例完成。
+- Temporal: `tests/mocks` provides linear/nonlinear ODE operators that implement `ISpatialOperator`, verifying time order;
+- Spatial: MMS manufactured solutions compare `residual()` with the analytic time derivative, verifying spatial order;
+- Integration is performed only on the integration branch with real verification cases.
 
 ---
 
-## 5. 门禁与验证
+## 5. Gates and verification
 
-### 5.1 分层门禁
+### 5.1 Gate layers
 
-| 门 | 内容 | 结果 |
+| Gate | Content | Result |
 |---|---|---|
-| G0 | scope 检查：新增/删除/重命名/未提交文件 | PASS / FAIL |
-| G1 | 编译与静态检查 | PASS / FAIL |
-| G2 | 单元测试（`ctest -L unit`） | PASS / FAIL |
-| G3 | 数值验证（MMS/ODE/守恒） | PASS / FAIL / **UNVERIFIED** |
-| G4 | 集成回归 | PASS / FAIL |
-| G5 | 性能基准 | PASS / FAIL / N/A |
+| G0 | Scope check: added/deleted/renamed/untracked files | PASS / FAIL |
+| G1 | Compilation and static checks | PASS / FAIL |
+| G2 | Unit tests (`ctest -L unit`) | PASS / FAIL |
+| G3 | Numerical verification (MMS/ODE/conservation) | PASS / FAIL / **UNVERIFIED** |
+| G4 | Integration regression | PASS / FAIL |
+| G5 | Performance benchmark | PASS / FAIL / N/A |
 
-**关键规则：**
+**Key rules:**
 
-- 未注册验证算例时，G3 必须是 `UNVERIFIED`，不能默认为 `PASS`；
-- worker gate 允许 `UNVERIFIED`，但报告状态必须写明，不得写“数值正确”；
-- integration gate 要求 `G3 = PASS`；没有真实验证算例时 integration 必须失败；
-- 只有 `G0–G4` 全 PASS，才允许进入人工审批。
+- When no verification case is registered, G3 must be `UNVERIFIED`, never `PASS`;
+- the worker gate may allow `UNVERIFIED`, but the report must state it and must not claim numerical correctness;
+- the integration gate requires `G3 = PASS`; integration must fail without a real case;
+- only when `G0–G4` all pass may the change enter human approval.
 
-### 5.2 `gate.sh` 三态
+### 5.2 `gate.sh` three states
 
 ```bash
-# worker：允许 G3 UNVERIFIED
+# worker: allow G3 UNVERIFIED
 scripts/gate.sh spatial
 
-# integration：要求 G3 PASS
+# integration: require G3 PASS
 GATE_MODE=integration scripts/gate.sh
 ```
 
-实现建议：
+Implementation guidance:
 
-- `GATE_MODE=worker|integration|release`；
-- `run_all.sh` 在 `GATE_MODE=integration` 且没有注册算例时 `exit 1`；
-- gate 结束写 `.agentlab/repro/last-gate.json`：`{mode, status, module, at}`；
-- `repro_snapshot.sh` 读取该文件，写入完整复现记录。
+- `GATE_MODE=worker|integration|release`;
+- `run_all.sh` returns `exit 1` when `GATE_MODE=integration` and no case is registered;
+- at the end, the gate writes `.agentlab/repro/last-gate.json`: `{mode, status, module, at}`;
+- `repro_snapshot.sh` reads that file and writes the complete repro record.
 
-### 5.3 复现记录
+### 5.3 Repro records
 
-每个数值/性能结论必须写 `.agentlab/repro/<label>-<timestamp>.json`，至少包含：
+Every numerical or performance conclusion must write `.agentlab/repro/<label>-<timestamp>.json`, containing at least:
 
 ```json
 {
@@ -395,11 +405,11 @@ GATE_MODE=integration scripts/gate.sh
 }
 ```
 
-字段模板见 `domains/cfd/repro_fields.yaml`；验证算例负责写 `*.case.json`。
+The field template is in `domains/cfd/repro_fields.yaml`; verification cases write `*.case.json`.
 
-### 5.4 报告模板
+### 5.4 Report template
 
-`platform/templates/report.md` 增加：
+`platform/templates/report.md` includes:
 
 ```text
 status: ready | blocked | need_decision
@@ -413,285 +423,285 @@ gate tail:
 repro files:
 ```
 
-`ready` 只表示“可进入集成审查”，不表示“数值已验证”。
+`ready` means "ready for integration review"; it does not mean "numerically verified".
 
 ---
 
-## 6. 协作与工作流
+## 6. Collaboration and workflow
 
-### 6.1 Worker 单轮流程
-
-```text
-preflight → 读 AGENTS/contracts/scope/TASKS
-  → 只做本模块第一个 todo
-  → 先写测试
-  → 实现
-  → gate（worker 模式）
-  → git add 范围内文件 + commit 到 agent/<module>
-  → 写报告（含 commit SHA）
-  → 停止
-```
-
-**必须 commit。** 否则 `integrate.sh` 合并的分支上没有可合并的变更。
-
-**禁止 push。** 推送由 `pre-push` hook 或 command guard 拦截。
-
-### 6.2 Scope 检查
-
-`scope_check.sh` 必须覆盖：
-
-- 已提交 diff：`git diff --name-only "$BASE"...HEAD`；
-- 工作区 diff：`git diff --name-only`；
-- 未跟踪文件：`git ls-files --others --exclude-standard`；
-- 删除/重命名：Git 路径会体现，测试用例要覆盖；
-- `BASE` 先 `git fetch`，避免用过期 main；
-- scope 文件从 `BASE` 读取，worker 改不了；
-- RFC/repro 建议限制为 `.agentlab/RFC/<module>-*`、`.agentlab/repro/<module>-*`，避免跨模块覆盖。
-
-### 6.3 集成
-
-`integrate.sh`：
-
-1. 检查工作区干净；
-2. `git fetch`；
-3. `git checkout -B integration main`；
-4. 按 `MODULES` 顺序合并 `agent/<module>`；
-5. 冲突则 abort，并要求对应 worker 基于最新 main 整理；
-6. 跑 `GATE_MODE=integration scripts/gate.sh`；
-7. 通过后停在 `integration`，等待人工审查；
-8. 人工批准后合并 `main`。
-
-**v0.1 不允许自动合并 main。**
-
-### 6.4 定期交互
-
-v0.1 的协作是**异步的**：worker 通过 `TASKS.md`、`contracts/`、`RFC/`、`reports/` 交互，不自由聊天。
-
-如需定期同步，增加 `scripts/sync.sh`（v0.1.1）：
+### 6.1 Worker single-turn flow
 
 ```text
-你是 spatial 的负责 agent。不要改代码。
-阅读 .agentlab/reports/temporal.md、contracts/、git log integration..agent/temporal。
-输出：
-1. 你是否受影响
-2. 是否需要 RFC
-3. 下一步建议
-写入 .agentlab/reports/sync-<date>-spatial.md
+preflight → read AGENTS/contracts/scope/TASKS
+  → do only the first todo for this module
+  → write tests first
+  → implement
+  → gate (worker mode)
+  → git add scoped files + commit to agent/<module>
+  → write report (with commit SHA)
+  → stop
 ```
 
-两个 worker 各跑一次，由人或只读 lead 汇总决策。
+**A commit is mandatory.** Otherwise `integrate.sh` has no change to merge.
+
+**Pushing is prohibited.** A `pre-push` hook or command guard blocks it.
+
+### 6.2 Scope check
+
+`scope_check.sh` must cover:
+
+- committed diff: `git diff --name-only "$BASE"...HEAD`;
+- working-tree diff: `git diff --name-only`;
+- untracked files: `git ls-files --others --exclude-standard`;
+- deletions and renames: Git reports them; test cases must cover them;
+- `BASE` must be fetched first to avoid a stale main;
+- the scope file is read from `BASE`, so the worker cannot modify it;
+- restrict RFC/repro paths to `.agentlab/RFC/<module>-*` and `.agentlab/repro/<module>-*` to avoid cross-module overwrites.
+
+### 6.3 Integration
+
+`integrate.sh`:
+
+1. checks that the working tree is clean;
+2. runs `git fetch`;
+3. runs `git checkout -B integration main`;
+4. merges `agent/<module>` in `MODULES` order;
+5. aborts on conflict and asks the worker to rebase on the latest main;
+6. runs `GATE_MODE=integration scripts/gate.sh`;
+7. leaves the result on `integration` for human review;
+8. the human merges to `main` after approval.
+
+**v0.1 does not allow automatic merging to main.**
+
+### 6.4 Periodic interaction
+
+v0.1 collaboration is **asynchronous**: workers interact through `TASKS.md`, `contracts/`, `RFC/`, and `reports/`; they do not chat freely.
+
+If periodic synchronization is required, add `scripts/sync.sh` (v0.1.1):
+
+```text
+You are the spatial responsible agent. Do not modify code.
+Read .agentlab/reports/temporal.md, contracts/, and git log integration..agent/temporal.
+Output:
+1. Whether you are affected
+2. Whether an RFC is needed
+3. Recommended next step
+Write to .agentlab/reports/sync-<date>-spatial.md
+```
+
+Run it once per worker; a human or a read-only lead summarizes the decisions.
 
 ---
 
-## 7. 安全与权限
+## 7. Security and permissions
 
-### 7.1 强制点
+### 7.1 Enforcement points
 
-| 阶段 | 强制手段 |
+| Stage | Enforcement |
 |---|---|
-| Worker 启动前 | `preflight.sh` 校验 contracts/scope/core/CMake/unit 测试 |
-| 工具调用时 | `guard.ts` 拦截 `sbatch/srun`、`git push`、`gh pr merge` |
-| 提交前 | `scope_check.sh` 校验文件范围 |
-| 集成前 | `gate.sh` 校验 build/unit/verification |
-| 合并/发布前 | 人工审批 |
+| Before worker start | `preflight.sh` validates contracts/scope/core/CMake/unit tests |
+| Tool call | `guard.ts` blocks `sbatch/srun`, `git push`, `gh pr merge` |
+| Before commit | `scope_check.sh` validates the file scope |
+| Before integration | `gate.sh` validates build/unit/verification |
+| Before merge/release | Human approval |
 
-### 7.2 明确边界
+### 7.2 Boundaries
 
-- Git 路径检查是**必要但不充分**；
-- `guard.ts` 是**约定级防护**，不是沙箱；有 bash 权限的 worker 技术上仍可绕过；
-- 真实隔离需要容器、独立 OS 用户或执行网关；
-- 高风险项目（芯片代码、生产仓库）必须使用独立账号/容器，并限制凭据；
-- 不提交 HPC 作业；大算例命令写入报告，由人执行。
+- Git path checks are **necessary but not sufficient**;
+- `guard.ts` is a **convention-level guard**, not a sandbox; a worker with Bash access can still bypass it;
+- real isolation requires a container, a dedicated OS user, or an execution gateway;
+- high-risk projects (chip code, production repositories) must use a dedicated account or container and restricted credentials;
+- do not submit HPC jobs; write large-case commands in the report for a human to execute.
 
-### 7.3 Pi 特有防护
+### 7.3 Pi-specific protections
 
-- `run_worker.sh` 加 `-e "$PLATFORM/extensions/guard.ts"`；
-- 目标仓库安装 `pre-push` hook：只允许 `agent/*` 分支推送；
-- Worker 使用 `--session-id "agentlab-$MODULE"` 或 `--no-session`；
-- Worker 不加载不必要的 MCP/extension；默认工具即可；
-- 记录 `pi --version` 与模型到复现记录。
+- `run_worker.sh` loads `-e "$PLATFORM/extensions/guard.ts"`;
+- the target repository installs a `pre-push` hook that allows only `agent/*` branches;
+- workers use `--session-id "agentlab-$MODULE"` or `--no-session`;
+- workers do not load unnecessary MCP servers or extensions; the default tool set is sufficient;
+- record `pi --version` and the model in the repro record.
 
 ---
 
-## 8. 路线图
+## 8. Roadmap
 
-### v0.1 — 可运行的双 Worker CFD Demo
+### v0.1 — runnable two-worker CFD demo
 
-- `platform/` + `domains/cfd/` + `examples/cfd-mini`；
-- 单 Worker Spatial S1 跑通；
-- 双 Worker Spatial S1 + Temporal T1；
-- G0–G4 门禁；
-- commit/report/repro；
-- 人工审批后合并 main。
+- `platform/` + `domains/cfd/` + `examples/cfd-mini`;
+- single Worker Spatial S1 passes;
+- two workers: Spatial S1 + Temporal T1;
+- G0–G4 gates;
+- commit/report/repro;
+- merge to main after human approval.
 
-### v0.1.1 — 硬化
+### v0.1.1 — hardening
 
-- `preflight.sh`、`guard.ts`、`pre-push`；
-- `sync.sh`；
-- `GATE_MODE` 三态；
-- scope 覆盖删除/重命名/未跟踪；
-- 平台脚本测试。
+- `preflight.sh`, `guard.ts`, `pre-push`;
+- `sync.sh`;
+- three-state `GATE_MODE`;
+- scope covers deletions/renames/untracked files;
+- platform script tests.
 
-### v0.2 — 任务引擎与协作
+### v0.2 — task engine and collaboration
 
-- TypeScript `platform/`（保留 bash 脚本为兼容层）；
-- SQLite：`projects/tasks/assignments/agents/events/messages/approvals/artifacts`；
-- Task 状态机：`proposed → authorized → ready → running → blocked/review/rework/verified/completed`；
-- 结构化消息：`proposal/objection/ack/decision/blocked/review_request/verification_result`；
-- RFC 状态与 contract version；
-- 审批队列；
-- 幂等执行、失败恢复、外部副作用去重。
+- TypeScript `platform/` (Bash scripts remain as a compatibility layer);
+- SQLite: `projects/tasks/assignments/agents/events/messages/approvals/artifacts`;
+- task state machine: `proposed → authorized → ready → running → blocked/review/rework/verified/completed`;
+- structured messages: `proposal/objection/ack/decision/blocked/review_request/verification_result`;
+- RFC state and contract version;
+- approval queue;
+- idempotent execution, failure recovery, external side-effect deduplication.
 
-**验收：** 重启协调服务后能恢复未完成任务，并安全决定继续/重试/等待人工。
+**Acceptance:** after restarting the coordination service, unfinished tasks can be recovered and safely continued, retried, or handed to a human.
 
-### v0.3 — 多项目
+### v0.3 — multiple projects
 
-- Workspace → Project → Repository；
-- OneFLOW / KylinFlow 两个独立仓库；
-- 共享 Agent Profile，独立 Assignment；
-- 凭据与写入权限按项目隔离；
-- 统一状态汇总。
+- Workspace → Project → Repository;
+- two independent repositories: OneFLOW and KylinFlow;
+- shared Agent Profiles, independent Assignments;
+- credentials and write permissions isolated per project;
+- unified status summary.
 
-### v0.4 — 有边界自主研发
+### v0.4 — bounded autonomous research
 
-- Campaign：长期目标、跨项目；
-- 权限继承：`Task Permissions ⊆ Campaign Permissions`；
-- 预算：workers、model budget、GPU hours；
-- Policy Engine 用确定性规则，LLM 只建议；
-- 高风险动作人工审批。
+- Campaign: long-term goals across projects;
+- permission inheritance: `Task Permissions ⊆ Campaign Permissions`;
+- budgets: workers, model budget, GPU hours;
+- Policy Engine uses deterministic rules; the LLM only proposes;
+- high-risk actions require human approval.
 
 ### v0.5 — AI4S Domain Pack
 
-- `manifest.yaml` 标准化；
-- 第二个领域（分子动力学 / AI4S 推理 / 生物信息学）；
-- 平台内核不改即可接入；
-- 如果必须改 `platform/`，记录抽象缺陷。
+- standardize `manifest.yaml`;
+- a second domain (molecular dynamics / AI4S inference / bioinformatics);
+- the platform kernel must not change to add it;
+- if `platform/` must change, record the abstraction defect.
 
 ---
 
-## 9. Sprint 计划
+## 9. Sprint plan
 
-### Sprint 0：审查与地基（1–2 天）
+### Sprint 0: review and foundation (1–2 days)
 
-- 审查两个 zip 的全部脚本与文档；
-- 建立 `open-research-agents/` 仓库骨架；
-- 建立 `examples/cfd-mini` 独立 git 仓库；
-- 合并 `domains/cfd/`；
-- 实现 `install_domain.sh` 安装到 `cfd-mini`；
-- 增加 `preflight.sh`；
-- 增加根 `AGENTS.md` 指针（Pi 自动加载根 `AGENTS.md`，不会自动加载 `.agentlab/AGENTS.md`）。
+- review all scripts and documents in the two ZIPs;
+- create the `open-research-agents/` repository skeleton;
+- create `examples/cfd-mini` as an independent Git repository;
+- merge `domains/cfd/`;
+- implement `install_domain.sh` for `cfd-mini`;
+- add `preflight.sh`;
+- add a root `AGENTS.md` pointer (Pi loads the root `AGENTS.md` automatically; it does not load `.agentlab/AGENTS.md` automatically).
 
-**交付：** `cfd-mini` 可编译，`.agentlab` 安装完成，preflight 能拒绝空契约。
+**Deliverable:** `cfd-mini` compiles, `.agentlab` is installed, and preflight rejects empty contracts.
 
-### Sprint 1：单 Worker 垂直切片（3–5 天）
+### Sprint 1: single-worker vertical slice (3–5 days)
 
-- 填 `data_layout.md`；
-- 确认 `interfaces.md` 的 `[CONFIRM]`；
-- 写 `core_api.md`，实现 `Field/Mesh/Comm` 最小版；
-- 根 `CMakeLists.txt`，`ctest -L unit` 标签；
-- 注册一个真实 MMS 空间收敛算例；
-- 跑 Spatial S1；
-- 检查 scope/gate/report/commit/repro；
-- 修复脚本问题。
+- fill `data_layout.md`;
+- confirm every `[CONFIRM]` in `interfaces.md`;
+- write `core_api.md` and implement the minimum `Field/Mesh/Comm`;
+- root `CMakeLists.txt` and `ctest -L unit` labels;
+- register one real MMS spatial convergence case;
+- run Spatial S1;
+- inspect scope/gate/report/commit/repro;
+- fix script issues.
 
-**交付：** 单 Worker 能完成真实开发任务，输出可信但明确标注 `G3` 状态的报告。
+**Deliverable:** a single worker completes a real development task and produces a credible report that explicitly states the `G3` status.
 
-### Sprint 2：双 Worker 与集成（3–5 天）
+### Sprint 2: two workers and integration (3–5 days)
 
-- Temporal T1（mock ODE，Forward Euler + SSPRK3）；
-- 两个 worktree 并行；
-- `integrate.sh` 合并；
-- `GATE_MODE=integration` 跑 G0–G4；
-- 人工审批报告；
-- 合并 main。
+- Temporal T1 (mock ODE, Forward Euler + SSPRK3);
+- two worktrees in parallel;
+- merge with `integrate.sh`;
+- run G0–G4 with `GATE_MODE=integration`;
+- human review;
+- merge to main.
 
-**交付：** 可复现的双 Agent CFD Demo。
+**Deliverable:** a reproducible two-agent CFD demo.
 
-### Sprint 3：硬化与 v0.1 发布（1–2 周）
+### Sprint 3: hardening and v0.1 release (1–2 weeks)
 
-- `guard.ts` + `pre-push`；
-- `sync.sh`；
-- scope 覆盖删除/重命名/未跟踪；
-- 平台脚本测试；
-- Quickstart、治理说明、已知限制；
-- 开源许可证与依赖检查。
+- `guard.ts` + `pre-push`;
+- `sync.sh`;
+- scope covers deletions/renames/untracked files;
+- platform script tests;
+- quickstart, governance documentation, known limitations;
+- open-source license and dependency review.
 
-### Sprint 4：v0.2 任务引擎（2–3 周）
+### Sprint 4: v0.2 task engine (2–3 weeks)
 
-- TypeScript 平台；
-- SQLite；
-- Task 状态机；
-- 消息协议；
-- RFC/审批；
-- 恢复与幂等。
-
----
-
-## 10. v0.1 验收标准
-
-- [ ] `examples/cfd-mini` 能独立 `cmake` + `ctest`；
-- [ ] `install_domain.sh cfd <repo>` 能安装 `.agentlab/`，不覆盖已编辑文件；
-- [ ] `preflight.sh` 在 contracts 有 TODO/[CONFIRM]、core/CMake/unit 缺失时失败；
-- [ ] Spatial S1 在独立 worktree 完成，scope 检查通过；
-- [ ] Temporal T1 用 mock ODE 独立验证，不依赖 spatial；
-- [ ] 两个 worker 并发运行，无共享文件写入冲突；
-- [ ] 越权修改（新增/删除/重命名/未跟踪）被 scope_check 拒绝；
-- [ ] `guard.ts` 拦住 `sbatch/srun`、`git push`、`gh pr merge`；
-- [ ] worker 必须 commit；报告含 commit SHA；
-- [ ] worker gate 允许 `G3=UNVERIFIED`，但报告明确标注；
-- [ ] integration gate 在无真实验证算例时失败；
-- [ ] integration G0–G4 通过后，人工审批才能合并 main；
-- [ ] 复现记录含 commit、编译器、硬件、模型、Pi 版本、命令；
-- [ ] Quickstart 能让一个新人在 30 分钟内跑通单 worker。
+- TypeScript platform;
+- SQLite;
+- task state machine;
+- message protocol;
+- RFC/approval;
+- recovery and idempotency.
 
 ---
 
-## 11. 风险与应对
+## 10. v0.1 acceptance criteria
 
-| 风险 | 应对 |
+- [ ] `examples/cfd-mini` builds and runs `ctest` independently;
+- [ ] `install_domain.sh cfd <repo>` installs `.agentlab/` without overwriting edited files;
+- [ ] `preflight.sh` fails when contracts contain TODO/[CONFIRM] or core/CMake/unit tests are missing;
+- [ ] Spatial S1 is completed in an independent worktree and passes scope checks;
+- [ ] Temporal T1 is verified independently with mock ODE operators, without spatial;
+- [ ] two workers run concurrently without shared-file write conflicts;
+- [ ] out-of-scope changes (add/delete/rename/untracked) are rejected by `scope_check`;
+- [ ] `guard.ts` blocks `sbatch/srun`, `git push`, and `gh pr merge`;
+- [ ] the worker must commit; the report contains the commit SHA;
+- [ ] the worker gate may allow `G3=UNVERIFIED`, but the report states it explicitly;
+- [ ] the integration gate fails without a real verification case;
+- [ ] after G0–G4 pass on integration, human approval is required before merging to main;
+- [ ] the repro record contains commit, compiler, hardware, model, Pi version, and commands;
+- [ ] the quickstart allows a new user to complete a single-worker run within 30 minutes.
+
+---
+
+## 11. Risks and mitigations
+
+| Risk | Mitigation |
 |---|---|
-| 验证关卡为空，gate 误报 | `G3=UNVERIFIED`；integration 必须有真实算例 |
-| 隐式格式导致接口强耦合 | T3 blocked；先 RFC 确定 Jacobian 接口 |
-| Worker 不 commit，集成无变更 | AGENTS + run_worker 后检查 `git status`/`git rev-list` |
-| Scope 只查路径，不查命令 | `guard.ts` + pre-push；高风险用容器 |
-| `pi -p` 无状态，跨轮丢上下文 | `--session-id` 或 `--no-session` 显式选择；报告即记忆 |
-| Build 资源竞争 | `-j` 上限、ccache/sccache、GPU/FPGA 资源锁 |
-| Agent 过度自信 | 数值门禁 + 人工 review；禁止“LLM 说通过” |
-| 平台/领域耦合 | domain pack spec；第二个领域检验 |
-| Pi 版本漂移 | pin 版本 + smoke test；只依赖公开 API |
-| 过度建设平台 | v0.1 只 bash；TS 推迟到 v0.2 |
+| Empty verification, gate false positives | `G3=UNVERIFIED`; integration requires a real case |
+| Implicit schemes create strong interface coupling | T3 blocked; RFC the Jacobian interface first |
+| Worker does not commit, integration has no change | AGENTS + post-run `git status`/`git rev-list` checks |
+| Scope checks paths but not commands | `guard.ts` + pre-push; containers for high-risk work |
+| `pi -p` is stateless across turns | explicit `--session-id` or `--no-session`; the report is the memory |
+| Build resource contention | `-j` limit, ccache/sccache, GPU/FPGA resource locks |
+| Agent overconfidence | numerical gate + human review; no "the LLM said it passed" |
+| Platform/domain coupling | domain pack spec; verify with a second domain |
+| Pi version drift | pin the version + smoke tests; depend only on public APIs |
+| Overbuilding the platform | v0.1 stays Bash; TypeScript is deferred to v0.2 |
 
 ---
 
-## 12. 给 Coding Agent 的第一轮指令
+## 12. First-round instructions for the coding agent
 
-你是本项目的工程实现 Agent。第一轮只做 **Phase 0 + 单 Worker 垂直切片**，不要进入 Phase 2。
+You are the implementation agent for this project. The first round covers **Phase 0 + the single-worker vertical slice** only. Do not start Phase 2.
 
-### 12.1 必须遵守
+### 12.1 Required behavior
 
-1. 先审查两个 zip 和当前仓库，不要假设脚本已正确运行；
-2. 不得修改 `domains/cfd/contracts/` 中的人填内容；接口不明确时写 RFC/`need_decision`；
-3. 不得放宽容差、跳过测试或删除失败测试；
-4. 不得提交 HPC 作业、push、merge；
-5. 未运行的测试标记 `Not Run`；
-6. 优先复用现有 starter，不要重写平台；
-7. 保持 `platform/` 与 `domains/` 分离。
+1. Review the two ZIPs and the current repository first; do not assume the scripts already work;
+2. do not modify human-owned content in `domains/cfd/contracts/`; when an interface is unclear, write an RFC/`need_decision`;
+3. do not loosen tolerances, skip tests, or delete failing tests;
+4. do not submit HPC jobs, push, or merge;
+5. mark unexecuted tests as `Not Run`;
+6. reuse the existing starter instead of rewriting the platform;
+7. keep `platform/` and `domains/` separate.
 
-### 12.2 执行顺序
+### 12.2 Execution order
 
-1. 输出当前仓库结构与问题清单；
-2. 建立 `open-research-agents/` 骨架；
-3. 建立 `examples/cfd-mini`；
-4. 合并 `domains/cfd/`；
-5. 实现 `preflight.sh`；
-6. 确认 CFD 最小接口 + `core_api.md`；
-7. 实现 `Field/Mesh/Comm` 最小版 + CMake + CTest；
-8. 注册一个真实 MMS 算例；
-9. 跑 Spatial S1；
-10. 检查 scope/gate/report/commit/repro；
-11. 输出下一轮双 Worker 建议。
+1. Output the current repository structure and an issue list;
+2. create the `open-research-agents/` skeleton;
+3. create `examples/cfd-mini`;
+4. merge `domains/cfd/`;
+5. implement `preflight.sh`;
+6. confirm the minimum CFD interface + `core_api.md`;
+7. implement the minimum `Field/Mesh/Comm` + CMake + CTest;
+8. register one real MMS case;
+9. run Spatial S1;
+10. inspect scope/gate/report/commit/repro;
+11. output recommendations for the next two-worker round.
 
-### 12.3 每轮输出格式
+### 12.3 Per-round output format
 
 ```text
 Summary
@@ -706,44 +716,44 @@ Next Tasks
 
 ---
 
-## 13. 与两个 ZIP 的差异清单
+## 13. Differences from the two ZIPs
 
-| 项目 | `cfd-agents-starter` | `agent-lab_1` | 综合方案 |
+| Item | `cfd-agents-starter` | `agent-lab_1` | Consolidated plan |
 |---|---|---|---|
-| 目录结构 | 单仓库内 `coordination/` | `platform/` + `domains/` + 安装到 `.agentlab/` | **采用 agent-lab** |
-| 平台位置 | 仓库内，worker 可改 | 仓库外，worker 不可改 | **采用 agent-lab** |
-| 多项目 | 不支持 | 领域包可复用 | **v0.3 采用** |
-| CFD 契约 | 详细 | 同源 | **保留，补 `core_api.md`** |
-| Core API | 未定义 | 未定义 | **新增** |
-| 验证 | 占位 | 占位 | **三态 + integration 严格** |
-| 复现记录 | 无 | `repro_snapshot.sh` | **采用，补 Pi/模型/命令** |
-| Worker commit | 未要求 | 未要求 | **新增强制** |
-| Preflight | 无 | 无 | **新增** |
-| 命令拦截 | 仅 AGENTS | 仅 AGENTS | **新增 guard + pre-push** |
-| Session 策略 | 未指定 | 未指定 | **显式 `--session-id`/`--no-session`** |
-| 可编译示例 | 无 | 无 | **新增 `examples/cfd-mini`** |
-| 平台语言 | bash | bash | **v0.1 bash；v0.2 TypeScript** |
-| 任务引擎 | 无 | 文档提到未实现 | **v0.2** |
-| 治理文档 | 简单 | `governance.md` 诚实列出未实现 | **保留并映射到 v0.2+** |
+| Directory structure | `coordination/` inside one repository | `platform/` + `domains/` + install into `.agentlab/` | **Use agent-lab** |
+| Platform location | Inside the repository; workers can modify it | Outside the repository; workers cannot modify it | **Use agent-lab** |
+| Multiple projects | Not supported | Domain packs reusable | **v0.3** |
+| CFD contracts | Detailed | Same source | **Keep, add `core_api.md`** |
+| Core API | Undefined | Undefined | **Add** |
+| Verification | Placeholder | Placeholder | **Three-state + strict integration** |
+| Repro records | None | `repro_snapshot.sh` | **Adopt; add Pi/model/commands** |
+| Worker commit | Not required | Not required | **Required** |
+| Preflight | None | None | **Add** |
+| Command interception | AGENTS only | AGENTS only | **Add guard + pre-push** |
+| Session policy | Unspecified | Unspecified | **Explicit `--session-id`/`--no-session`** |
+| Compilable example | None | None | **Add `examples/cfd-mini`** |
+| Platform language | Bash | Bash | **v0.1 Bash; v0.2 TypeScript** |
+| Task engine | None | Documented as not implemented | **v0.2** |
+| Governance documentation | Minimal | `governance.md` states what is not enforced | **Keep; map to v0.2+** |
 
 ---
 
-## 14. 最终成功标准
+## 14. Final success criteria
 
-不以 agent 数量衡量，而以以下能力衡量：
+Success is not measured by the number of agents, but by these capabilities:
 
-1. 多个 agent 能安全协作修改科学计算软件；
-2. 能阻止接口冲突和越权修改；
-3. 能独立验证数值正确性；
-4. 能恢复中断的长期任务；
-5. 能管理多个独立科研仓库；
-6. 能在有限预算和明确授权下推进研发；
-7. 能通过 Domain Pack 扩展到其他 AI4S 领域。
+1. multiple agents can safely collaborate on scientific software;
+2. interface conflicts and out-of-scope changes are prevented;
+3. numerical correctness can be verified independently;
+4. interrupted long-running tasks can be recovered;
+5. multiple independent research repositories can be managed;
+6. research can proceed within explicit authorization and bounded budgets;
+7. the system can extend to other AI4S domains through Domain Packs.
 
-**实施策略：**
+**Strategy:**
 
 > CFD First → Verified Multi-Agent Development → Multi-Project Coordination → Bounded Autonomous Research → Open AI4S Platform.
 
-**第一轮授权：**
+**First-round authorization:**
 
-> 只完成 Phase 0 和单 Worker 垂直切片。等真实 C++ 编译、数值验证、scope/gate/commit/repro 都跑通，再开 Spatial/Temporal 双 Worker。
+> Complete Phase 0 and the single-worker vertical slice only. After real C++ compilation, numerical verification, and scope/gate/commit/repro all pass, start the Spatial/Temporal two-worker round.

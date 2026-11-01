@@ -7,7 +7,7 @@
 修改任何内容之前：
 
 1. 阅读 `platform/AGENTS.md`。
-2. 阅读 `IMPLEMENTATION_PLAN.md`。
+2. 阅读 `IMPLEMENTATION_PLAN.zh-CN.md`。
 3. 除非你是人类所有者，否则不要修改 `domains/cfd/contracts/`；agent 必须提交 RFC。
 4. 未同步更新 `platform/docs/governance.md` 和测试时，不要改变 `platform/scripts/` 的语义。
 

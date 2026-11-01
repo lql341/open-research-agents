@@ -41,7 +41,7 @@ tests/fixtures/         平台 smoke test 使用的小型夹具
 | [`platform/docs/domain-pack-spec.zh-CN.md`](platform/docs/domain-pack-spec.zh-CN.md) | 人 | domain pack 规范 |
 | [`platform/docs/governance.zh-CN.md`](platform/docs/governance.zh-CN.md) | 人 | 授权模型与当前强制程度 |
 | [`platform/docs/verification.zh-CN.md`](platform/docs/verification.zh-CN.md) | 人 | 门禁分层与退出码 |
-| [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) | 人 | 长期计划（规划文件） |
+| [`IMPLEMENTATION_PLAN.zh-CN.md`](IMPLEMENTATION_PLAN.zh-CN.md) | 人 | 长期计划（规划文件） |
 
 ### 完整示例 target
 
