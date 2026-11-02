@@ -77,6 +77,9 @@ ATTENTION_GATE_FAIL=pending
 ATTENTION_GATE_UNVERIFIED=review
 ATTENTION_REPORT_READY=review
 ATTENTION_WORKER_FAILURE=pending
+ATTENTION_TICKET=pending
+ATTENTION_TICKET_REVIEW=review
+ATTENTION_CANDIDATE=pending
 ```
 
 `pending` 优先显示，其次是 `review`；`fyi` 默认隐藏，使用 `--all` 显示。
@@ -125,6 +128,36 @@ proposed/authorized/running -> stale -> authorized
 ```
 
 `agentlab decide ticket:<id> --ack` 会被拒绝：ticket 必须明确批准或拒绝。
+
+## 3.3 GitHub Source（v0.4）
+
+GitHub source 通过已认证的 `gh` CLI 轮询通知，生成的是**候选**，不是 ticket。
+候选出现在收件箱中；必须由人批准后才会创建工作授权。
+
+```bash
+agentlab source github status
+agentlab source github poll
+agentlab source github poll --repo lql341/OneFLOW --limit 20
+agentlab source github poll --input tests/fixtures/github-notifications.json --repo lql341/OneFLOW
+```
+
+`--input` 读取已保存的通知列表，不调用 GitHub；平台测试和离线审查使用该方式。
+
+仓库默认取 `.agentlab/target.env` 中的 `GITHUB_REPOSITORY`，否则使用 `gh repo view`。
+轮询是只读的：不会把通知标记为已读。
+
+批准候选时必须指定 workstream：
+
+```bash
+agentlab inbox
+agentlab decide candidate:<id> --approve --workstream <ws> --note "..."
+```
+
+`--approve` 会创建一个 `source=github` 的已授权 ticket；`--reject` 将候选标记为拒绝。
+`--ack` 会被拒绝，因为候选必须明确批准或拒绝。
+
+Source 状态保存在 `.agentlab/sources/github.json`；候选保存在
+`.agentlab/candidates/`。
 
 ## 4. 长时间运行与中断
 

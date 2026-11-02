@@ -309,6 +309,46 @@ assert items['ticket:t1']['kind']=='ticket_review'
 PYCHECK
 rm -rf "$TICKET"
 
+echo "== github source and candidate approval"
+SOURCE="$TMP/source"
+mkdir -p "$SOURCE"
+cp -R "$ROOT/tests/fixtures/mini-target/." "$SOURCE/"
+( cd "$SOURCE" && git init -q -b main && git add -A && git commit -q -m init ) >/dev/null
+( cd "$SOURCE" && "$ROOT/bin/agentlab" source github poll --input "$ROOT/tests/fixtures/github-notifications.json" --repo lql341/OneFLOW --json >/tmp/agentlab-source.json 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: source poll"; cat /tmp/agentlab-source.json; }
+python3 - <<'PYCHECK' && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: source candidates"; }
+import json
+r=json.load(open('/tmp/agentlab-source.json'))
+assert r['created']==2
+assert r['skipped']==1
+ids={c['id'] for c in r['candidates']}
+assert 'gh-1001-20261102t000000z' in ids
+assert 'gh-1002-20261102t000100z' in ids
+PYCHECK
+( cd "$SOURCE" && "$ROOT/bin/agentlab" inbox --json >/tmp/agentlab-source-inbox.json 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: source inbox"; }
+python3 - <<'PYCHECK' && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: candidate inbox item"; }
+import json
+items={i['id']:i for i in json.load(open('/tmp/agentlab-source-inbox.json'))['items']}
+assert items['candidate:gh-1001-20261102t000000z']['category']=='pending'
+assert items['candidate:gh-1002-20261102t000100z']['category']=='pending'
+PYCHECK
+( cd "$SOURCE" && "$ROOT/bin/agentlab" decide candidate:gh-1001-20261102t000000z --approve --workstream spatial --note "accepted" >/tmp/agentlab-source-approve.txt 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: candidate approve"; cat /tmp/agentlab-source-approve.txt; }
+( cd "$SOURCE" && "$ROOT/bin/agentlab" ticket show gh-1001-20261102t000000z --json >/tmp/agentlab-source-ticket.json 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: candidate ticket"; }
+python3 - <<'PYCHECK' && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: candidate ticket state"; }
+import json
+t=json.load(open('/tmp/agentlab-source-ticket.json'))
+assert t['status']=='authorized'
+assert t['source']=='github'
+assert t['strength']=='explicit'
+PYCHECK
+( cd "$SOURCE" && "$ROOT/bin/agentlab" decide candidate:gh-1002-20261102t000100z --reject --note "not now" >/tmp/agentlab-source-reject.txt 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: candidate reject"; }
+( cd "$SOURCE" && "$ROOT/bin/agentlab" source github status --json >/tmp/agentlab-source-status.json 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: source status"; }
+python3 - <<'PYCHECK' && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: source status count"; }
+import json
+r=json.load(open('/tmp/agentlab-source-status.json'))
+assert r['pending_candidates']==0
+PYCHECK
+rm -rf "$SOURCE"
+
 echo "----"
 echo "smoke: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

@@ -539,7 +539,7 @@ ships independently and leaves the previous one usable.
 
 - Pi worker in a worktree, independent session, scope, gate, report, repro.
 - OneFLOW target in audit mode; two read-only audits completed.
-- Platform and target packs; 73 smoke checks and 27 harness checks.
+- Platform and target packs; 83 smoke checks and 27 harness checks.
 
 Limitation: the human still decides what enters attention. There is no Source,
 Mandate, Ticket, Outbox, or attention view.
@@ -586,20 +586,30 @@ Current implementation: `agentlab ticket new/list/show/authorize/reject/set/
 revalidate/resume`; proposed and stale tickets appear in the inbox. See
 [`docs/usage.md`](docs/usage.md).
 
-### v0.4 — Source and Trigger (GitHub first, next)
+### v0.4 — Source and Trigger (GitHub first, implemented, beta)
 
 Goal: let work enter from an event stream without losing control.
 
-- One Source: GitHub notifications (read-only intake).
-- Trigger deduplication and Thread grouping; store the source payload.
-- Admission starts in `observe` mode: events become candidates in the Inbox, not
-  tickets. A human approves before work starts.
-- `agentlab source` configuration and health.
+- One Source: GitHub notifications through the authenticated `gh` CLI (read-only).
+- Candidates record repo, notification id, reason, subject type, title, URL,
+  strength, and status. The notifications endpoint does not expose the actor, so
+  `sender` is `unknown` until a later source adapter resolves it.
+- Deduplication uses notification id plus `updated_at`; the same notification
+  update produces a new candidate.
+- Admission is `observe` only: candidates enter the Inbox; no ticket is created
+  automatically. Approval requires an explicit workstream and creates an
+  authorized ticket with `source=github`.
+- `agentlab source github status` and `poll`; `--input` reads a saved fixture.
+- Polling never marks notifications as read.
 
-Acceptance: a GitHub mention creates one candidate with sender, strength, and
-policy version; duplicate events are ignored; no automatic ticket creation.
+Acceptance: a GitHub mention creates one candidate; duplicate polls are ignored;
+no automatic ticket; approval creates an authorized ticket with a policy snapshot.
 
-### v0.5 — Outbox and Channel
+Current implementation: `agentlab source github poll/status`,
+`.agentlab/candidates/`, `.agentlab/sources/github.json`. See
+[`docs/usage.md`](docs/usage.md).
+
+### v0.5 — Outbox and Channel (next)
 
 Goal: make external communication durable and idempotent.
 

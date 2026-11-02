@@ -128,6 +128,22 @@ Proposed and stale tickets appear in `agentlab inbox`. If a contract, scope,
 `AGENTS.md`, mode, target, or base ref changes, `revalidate` marks the ticket
 `stale`; it must be authorized again.
 
+## GitHub source
+
+The source uses the authenticated `gh` CLI and is read-only. It creates candidates,
+not tickets.
+
+```bash
+cd ~/OneFLOW
+agentlab source github status
+agentlab source github poll --limit 20
+agentlab inbox
+agentlab decide candidate:<id> --approve --workstream runtime-io --note "..."
+```
+
+`--input <fixture.json>` reads a saved notification list for offline review or
+testing. Polling does not mark GitHub notifications as read.
+
 ## Branch rules
 
 - `BASE_REF=dev` for this local checkout.

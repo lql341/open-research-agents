@@ -29,6 +29,7 @@ DEFAULT_POLICY = {
     "worker_failure": "pending",
     "ticket": "pending",
     "ticket_review": "review",
+    "candidate": "pending",
 }
 ERROR_MARKERS = (
     "OpenAI API error",
@@ -81,6 +82,7 @@ def policy_from_env(env: dict[str, str]) -> dict[str, str]:
         "ATTENTION_WORKER_FAILURE": "worker_failure",
         "ATTENTION_TICKET": "ticket",
         "ATTENTION_TICKET_REVIEW": "ticket_review",
+        "ATTENTION_CANDIDATE": "candidate",
     }
     for key, kind in mapping.items():
         value = env.get(key, "").strip().lower()
@@ -252,6 +254,34 @@ def ticket_items(agentlab: Path, policy: dict[str, str]) -> list[dict[str, objec
     return items
 
 
+def candidate_items(agentlab: Path, policy: dict[str, str]) -> list[dict[str, object]]:
+    items: list[dict[str, object]] = []
+    directory = agentlab / "candidates"
+    if not directory.is_dir():
+        return items
+    for path in sorted(directory.glob("*.json")):
+        try:
+            candidate = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if candidate.get("status") != "pending":
+            continue
+        category = policy.get("candidate", "pending")
+        if category == "ignore":
+            continue
+        items.append({
+            "id": f"candidate:{candidate.get('id', path.stem)}",
+            "kind": "candidate",
+            "category": category,
+            "title": str(candidate.get("title", path.stem)),
+            "detail": f"repo={candidate.get('repo', '-')} reason={candidate.get('reason', '-')} strength={candidate.get('strength', '-')}",
+            "at": candidate.get("updated_at", ""),
+            "path": str(path),
+            "fingerprint": fingerprint(path.read_text(encoding="utf-8", errors="replace")),
+        })
+    return items
+
+
 def load_decisions(decisions_dir: Path) -> dict[str, set[str]]:
     decisions: dict[str, set[str]] = {}
     if not decisions_dir.is_dir():
@@ -287,6 +317,7 @@ def collect(root: Path) -> tuple[dict[str, str], list[dict[str, object]]]:
         if item:
             items.append(item)
     items.extend(ticket_items(agentlab, policy))
+    items.extend(candidate_items(agentlab, policy))
     for ws in modules:
         path = latest_repro(agentlab / "repro", ws)
         if path:
@@ -358,7 +389,40 @@ def command_decide(args: argparse.Namespace) -> int:
         return 2
     decision = "approved" if args.approve else "rejected" if args.reject else "acknowledged"
 
-    if item["kind"] == "ticket":
+    if item["kind"] == "candidate":
+        candidate_id = str(item["id"]).split(":", 1)[1]
+        path = agentlab / "candidates" / f"{candidate_id}.json"
+        try:
+            candidate = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            print(f"decide: cannot read candidate {candidate_id}", file=sys.stderr)
+            return 2
+        if decision == "approved":
+            if not args.workstream:
+                print("decide: candidate approval requires --workstream <ws>", file=sys.stderr)
+                return 2
+            ticket_id = candidate_id
+            try:
+                tickets.create(
+                    root, ticket_id, str(candidate.get("title", ticket_id)), args.workstream,
+                    source="github", sender=str(candidate.get("sender", "unknown")),
+                    strength=str(candidate.get("strength", "inferred")), rule="github",
+                    reason=args.note or "approved from attention inbox", status="authorized",
+                )
+            except ValueError as error:
+                print(f"decide: {error}", file=sys.stderr)
+                return 2
+            candidate["status"] = "accepted"
+            candidate["ticket"] = ticket_id
+        elif decision == "rejected":
+            candidate["status"] = "rejected"
+            candidate["reason"] = args.note or "rejected from attention inbox"
+        else:
+            print("decide: a candidate requires --approve or --reject", file=sys.stderr)
+            return 2
+        candidate["decided_at"] = __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
+        path.write_text(json.dumps(candidate, indent=2, ensure_ascii=False) + "\n")
+    elif item["kind"] == "ticket":
         ticket_id = str(item["id"]).split(":", 1)[1]
         if decision == "approved":
             tickets.transition(root, tickets.load(root, ticket_id), "authorized",
@@ -414,6 +478,7 @@ def build_parser() -> argparse.ArgumentParser:
     group.add_argument("--approve", action="store_true")
     group.add_argument("--reject", action="store_true")
     decide.add_argument("--ack", action="store_true", help="acknowledge without changing an RFC")
+    decide.add_argument("--workstream", help="workstream used when approving a candidate")
     decide.add_argument("--note", default="")
     decide.set_defaults(func=command_decide)
     return parser

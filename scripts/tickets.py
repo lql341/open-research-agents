@@ -134,43 +134,58 @@ def transition(root: Path, ticket: dict, to: str, reason: str = "", actor: str =
     return ticket
 
 
-def command_new(args: argparse.Namespace) -> int:
-    root = repo_root()
+def create(root: Path, ticket_id: str, title: str, workstream: str,
+           source: str = "manual", sender: str = "human",
+           strength: str = "explicit", rule: str = "manual",
+           reason: str = "", status: str = "proposed") -> dict:
     agentlab = root / ".agentlab"
     if not (agentlab / "domain.env").is_file():
-        print("ticket: .agentlab/ not found", file=sys.stderr)
-        return 2
-    if not ID_RE.match(args.id):
-        print("ticket: id must be lowercase letters, digits, or hyphens", file=sys.stderr)
-        return 2
-    path = agentlab / "tickets" / f"{args.id}.json"
+        raise ValueError(".agentlab/ not found")
+    if not ID_RE.match(ticket_id):
+        raise ValueError("id must be lowercase letters, digits, or hyphens")
+    path = agentlab / "tickets" / f"{ticket_id}.json"
     if path.exists():
-        print(f"ticket: {args.id} already exists", file=sys.stderr)
-        return 2
-    scope_file = agentlab / "scope" / f"{args.workstream}.txt"
+        raise ValueError(f"{ticket_id} already exists")
+    scope_file = agentlab / "scope" / f"{workstream}.txt"
     if not scope_file.is_file():
-        print(f"ticket: no scope for workstream {args.workstream}", file=sys.stderr)
-        return 2
+        raise ValueError(f"no scope for workstream {workstream}")
+    if status not in ("proposed", "authorized"):
+        raise ValueError("a new ticket must be proposed or authorized")
     version, scope_digest = policy_snapshot(root)
+    timestamp = now()
+    history = [{"at": timestamp, "from": "", "to": "proposed", "actor": "human", "reason": reason}]
+    if status == "authorized":
+        history.append({"at": timestamp, "from": "proposed", "to": "authorized", "actor": "human", "reason": reason})
     ticket = {
-        "id": args.id,
-        "title": args.title,
-        "workstream": args.workstream,
-        "source": args.source,
-        "sender": args.sender,
-        "strength": args.strength,
-        "rule": args.rule,
+        "id": ticket_id,
+        "title": title,
+        "workstream": workstream,
+        "source": source,
+        "sender": sender,
+        "strength": strength,
+        "rule": rule,
         "policy_version": version,
-        "scope_ref": f".agentlab/scope/{args.workstream}.txt",
+        "scope_ref": f".agentlab/scope/{workstream}.txt",
         "scope_hash": scope_digest,
-        "status": "proposed",
-        "reason": args.reason or "",
-        "created_at": now(),
-        "updated_at": now(),
-        "history": [{"at": now(), "from": "", "to": "proposed", "actor": "human", "reason": args.reason or ""}],
+        "status": status,
+        "reason": reason,
+        "created_at": timestamp,
+        "updated_at": timestamp,
+        "history": history,
     }
     save(root, ticket)
-    print(f"ticket {args.id}: proposed (policy {version})")
+    return ticket
+
+
+def command_new(args: argparse.Namespace) -> int:
+    root = repo_root()
+    try:
+        ticket = create(root, args.id, args.title, args.workstream, args.source, args.sender,
+                        args.strength, args.rule, args.reason, "proposed")
+    except ValueError as error:
+        print(f"ticket: {error}", file=sys.stderr)
+        return 2
+    print(f"ticket {ticket['id']}: proposed (policy {ticket['policy_version']})")
     return 0
 
 

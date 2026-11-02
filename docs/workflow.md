@@ -237,6 +237,29 @@ A new ticket is `proposed` and appears in the inbox. Approve it with
 contracts, scope, mode, target, or base ref changes, `revalidate` marks the
 ticket `stale`; it must be authorized again before it can resume.
 
+### 4.9 GitHub source
+
+The GitHub source is the first event intake. It is read-only and starts in
+observe mode.
+
+```bash
+agentlab source github status
+agentlab source github poll --limit 20
+agentlab source github poll --input <fixture.json> --repo owner/name
+```
+
+Each notification becomes a candidate in `.agentlab/candidates/` and appears in
+the inbox as `candidate:<id>`. It does not create a ticket. A human approves it
+with an explicit workstream:
+
+```bash
+agentlab decide candidate:<id> --approve --workstream <ws> --note "..."
+```
+
+That creates an authorized ticket with `source=github`. Rejecting the candidate
+records the decision and creates nothing. Polling never marks notifications as
+read.
+
 ## 5. Run, review, integrate
 
 ```bash

@@ -80,6 +80,9 @@ ATTENTION_GATE_FAIL=pending
 ATTENTION_GATE_UNVERIFIED=review
 ATTENTION_REPORT_READY=review
 ATTENTION_WORKER_FAILURE=pending
+ATTENTION_TICKET=pending
+ATTENTION_TICKET_REVIEW=review
+ATTENTION_CANDIDATE=pending
 ```
 
 `pending` is shown first, then `review`; `fyi` is hidden unless `--all` is used.
@@ -132,6 +135,39 @@ any non-terminal -> stopped | rejected
 
 `agentlab decide ticket:<id> --ack` is refused: a ticket requires an explicit
 approval or rejection.
+
+## 3.3 GitHub source (v0.4)
+
+The GitHub source polls the authenticated `gh` CLI and creates **candidates**,
+not tickets. Candidates appear in the inbox; a human must approve one before work
+is authorized.
+
+```bash
+agentlab source github status
+agentlab source github poll
+agentlab source github poll --repo lql341/OneFLOW --limit 20
+agentlab source github poll --input tests/fixtures/github-notifications.json --repo lql341/OneFLOW
+```
+
+`--input` reads a saved notification list instead of calling GitHub; it is used by
+the platform tests and for offline review.
+
+The repository defaults to `GITHUB_REPOSITORY` in `.agentlab/target.env`, then to
+`gh repo view`. Polling is read-only: it does not mark notifications as read.
+
+A candidate is approved with an explicit workstream:
+
+```bash
+agentlab inbox
+agentlab decide candidate:<id> --approve --workstream <ws> --note "..."
+```
+
+`--approve` creates an authorized ticket with `source=github`; `--reject` marks
+the candidate rejected. `--ack` is refused because a candidate requires an
+explicit decision.
+
+Source state is stored in `.agentlab/sources/github.json`; candidates are stored
+in `.agentlab/candidates/`.
 
 ## 4. Long runs and interruption
 

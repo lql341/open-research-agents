@@ -47,6 +47,7 @@ targets/<target>/
 | `REQUIRE_UNIT` | 否 | `1`（默认）要求存在 C++ 单元测试源 |
 | `UNIT_DIR` | 否 | `REQUIRE_UNIT` 检查的目录（默认 `tests/unit`） |
 | `BUILD_FILE` | 否 | 构建入口文件（默认 `CMakeLists.txt`） |
+| `GITHUB_REPOSITORY` | 否 | 将 GitHub 通知过滤到 `owner/name`；默认使用 `gh repo view` |
 
 允许其他 key；平台会忽略未知 key。target 自己的验证脚本可以读取 target 特有变量。
 
@@ -62,6 +63,7 @@ ATTENTION_REPORT_READY=review
 ATTENTION_WORKER_FAILURE=pending
 ATTENTION_TICKET=pending
 ATTENTION_TICKET_REVIEW=review
+ATTENTION_CANDIDATE=pending
 ```
 
 示例：

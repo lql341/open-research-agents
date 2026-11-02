@@ -121,6 +121,21 @@ agentlab ticket revalidate t1
 Proposed 和 stale ticket 会出现在 `agentlab inbox` 中。contracts、scope、`AGENTS.md`、
 mode、target 或 base ref 变化后，`revalidate` 会将 ticket 标为 `stale`；必须重新授权。
 
+## GitHub Source
+
+该 Source 使用已认证的 `gh` CLI，只读。它生成候选，不生成 ticket。
+
+```bash
+cd ~/OneFLOW
+agentlab source github status
+agentlab source github poll --limit 20
+agentlab inbox
+agentlab decide candidate:<id> --approve --workstream runtime-io --note "..."
+```
+
+`--input <fixture.json>` 读取已保存的通知列表，用于离线审查或测试。
+轮询不会把 GitHub 通知标记为已读。
+
 ## 分支规则
 
 - 当前本地检出使用 `BASE_REF=dev`。

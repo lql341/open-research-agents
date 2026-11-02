@@ -531,7 +531,7 @@ v0.1 的协作是**异步的**：worker 通过 `TASKS.md`、`contracts/`、`RFC/
 
 - Pi worker 在独立工作树和会话中运行；scope、门禁、报告、repro 已打通。
 - OneFLOW target 处于 audit 模式；两个只读审计已完成。
-- 平台和 target pack；73 项 smoke 检查和 27 项 harness 检查。
+- 平台和 target pack；83 项 smoke 检查和 27 项 harness 检查。
 
 局限：仍由人决定什么进入注意力；没有 Source、Mandate、Ticket、Outbox 或注意力视图。
 
@@ -571,20 +571,26 @@ v0.1 的协作是**异步的**：worker 通过 `TASKS.md`、`contracts/`、`RFC/
 当前实现：`agentlab ticket new/list/show/authorize/reject/set/revalidate/resume`；
 proposed 和 stale ticket 会出现在收件箱。参见 [`docs/usage.zh-CN.md`](docs/usage.zh-CN.md)。
 
-### v0.4 — Source 与 Trigger（先接 GitHub，下一步）
+### v0.4 — Source 与 Trigger（先接 GitHub，已实现，beta）
 
 目标：让工作从事件流进入，同时不失去控制。
 
-- 第一个 Source：GitHub notifications（只读接入）。
-- Trigger 去重和 Thread 分组；保存来源 payload。
-- 准入从 `observe` 模式开始：事件成为 Inbox 中的候选，不直接创建 ticket。
-  人批准后才开始工作。
-- `agentlab source` 配置和健康状态。
+- 第一个 Source：通过已认证的 `gh` CLI 读取 GitHub notifications（只读）。
+- 候选记录 repo、notification id、reason、subject type、title、URL、strength 和 status。
+  notifications endpoint 不提供 actor，因此 `sender` 暂为 `unknown`，后续 Source 适配器再补齐。
+- 使用 notification id + `updated_at` 去重；同一通知更新后会产生新候选。
+- 准入仅支持 `observe`：候选进入 Inbox，不自动创建 ticket。批准时必须指定 workstream，
+  并创建 `source=github` 的已授权 ticket。
+- `agentlab source github status` 和 `poll`；`--input` 读取已保存的 fixture。
+- 轮询不会把通知标记为已读。
 
-验收：一条 GitHub mention 生成一个候选，包含 sender、strength 和 policy version；
-重复事件被忽略；不自动创建 ticket。
+验收：一条 GitHub mention 生成一个候选；重复轮询被忽略；不自动创建 ticket；
+批准后创建带策略快照的已授权 ticket。
 
-### v0.5 — Outbox 与 Channel
+当前实现：`agentlab source github poll/status`、`.agentlab/candidates/`、
+`.agentlab/sources/github.json`。参见 [`docs/usage.zh-CN.md`](docs/usage.zh-CN.md)。
+
+### v0.5 — Outbox 与 Channel（下一步）
 
 目标：让对外通信持久且幂等。
 

@@ -5,7 +5,7 @@
 一个构建在 Pi 之上的有边界多智能体开发系统。平台本身是通用的；CFD 是第一个
 domain，OneFLOW 是第一个完整示例。
 
-状态：**v0.1 scaffold + v0.2 注意力收件箱 + v0.3 Ticket 账本（beta）**。平台脚本使用 Bash，兼容 macOS
+状态：**v0.1 scaffold + v0.2 注意力收件箱 + v0.3 Ticket 账本 + v0.4 GitHub Source（beta）**。平台脚本使用 Bash，兼容 macOS
 自带的 3.2 版本。
 支持 macOS、Linux、WSL 和 Windows Git Bash；不支持原生 PowerShell。详见
 [`docs/platform-support.zh-CN.md`](docs/platform-support.zh-CN.md)。
@@ -118,6 +118,7 @@ agentlab status [--json]                    workstream、报告、门禁、待�
 agentlab inbox [--all] [--json]             注意力收件箱：只显示需要人的条目
 agentlab decide <id> [--ack|--approve|--reject] [--note TEXT]
 agentlab ticket <new|list|show|authorize|reject|set|revalidate|resume> ...
+agentlab source github <poll|status> [--repo OWNER/NAME] [--input FILE]
 agentlab preflight <ws>
 agentlab run <ws> [--detach] [extra...]
 agentlab gate <ws> [--here]                 默认在 worker 工作树中运行
@@ -132,7 +133,7 @@ agentlab clean <ws...>                      删除工作树，保留分支和日
 ## 平台测试
 
 ```bash
-bash tests/platform_smoke.sh        # 73 项：脚本、CLI、安装生命周期、session guard
+bash tests/platform_smoke.sh        # 83 项：脚本、CLI、安装生命周期、session guard
 bash scripts/validate-harness.sh    # 27 项：完整门禁闭环，不调用模型
 ```
 

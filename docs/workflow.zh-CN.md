@@ -222,6 +222,26 @@ agentlab ticket revalidate <id>
 `policy_version` 对人所有的策略输入做哈希。`AGENTS.md`、contracts、scope、mode、
 target 或 base ref 变化后，`revalidate` 会将 ticket 标为 `stale`；必须重新授权后才能恢复。
 
+### 4.9 GitHub Source
+
+GitHub source 是第一个事件入口，只读，并以 observe 模式开始。
+
+```bash
+agentlab source github status
+agentlab source github poll --limit 20
+agentlab source github poll --input <fixture.json> --repo owner/name
+```
+
+每个通知成为 `.agentlab/candidates/` 中的一个候选，并以 `candidate:<id>` 出现在收件箱。
+它不会创建 ticket。人需要指定 workstream 批准：
+
+```bash
+agentlab decide candidate:<id> --approve --workstream <ws> --note "..."
+```
+
+这会创建一个 `source=github` 的已授权 ticket。拒绝候选会记录决定，不创建 ticket。
+轮询不会把通知标记为已读。
+
 ## 5. 运行、审查、集成
 
 ```bash

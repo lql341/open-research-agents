@@ -50,6 +50,7 @@ comments.
 | `REQUIRE_UNIT` | no | `1` (default) requires a C++ unit test source |
 | `UNIT_DIR` | no | Directory checked by `REQUIRE_UNIT` (default `tests/unit`) |
 | `BUILD_FILE` | no | Build entry file (default `CMakeLists.txt`) |
+| `GITHUB_REPOSITORY` | no | Filter GitHub notifications to `owner/name`; default is `gh repo view` |
 
 Other keys are allowed; the platform ignores unknown keys. Target-specific
 variables can be consumed by the target's own verification scripts.
@@ -67,6 +68,7 @@ ATTENTION_REPORT_READY=review
 ATTENTION_WORKER_FAILURE=pending
 ATTENTION_TICKET=pending
 ATTENTION_TICKET_REVIEW=review
+ATTENTION_CANDIDATE=pending
 ```
 
 Example:
