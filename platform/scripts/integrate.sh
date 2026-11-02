@@ -12,12 +12,12 @@ BASE="${BASE_REF:-main}"
 # Audit records are expected to be untracked: a gate run on the base checkout
 # leaves them there. They are committed with the integration. Everything else
 # must be clean.
-DIRTY="$(git status --porcelain | grep -vE '^\?\? \.agentlab/(repro|decisions)/' || true)"
+DIRTY="$(git status --porcelain | grep -vE '^\?\? \.agentlab/(repro|decisions|tickets|candidates|sources)/' || true)"
 if [ -n "$DIRTY" ]; then
   echo "working tree is dirty (tracked or untracked):" >&2
   printf '%s\n' "$DIRTY" | sed 's/^/  /' >&2
   echo "commit or remove these before integrating." >&2
-  echo "untracked .agentlab/repro and .agentlab/decisions records are allowed." >&2
+  echo "untracked .agentlab/{repro,decisions,tickets,candidates,sources} records are allowed." >&2
   echo "gate in the worker worktree for the real result: agentlab gate <workstream> --worktree" >&2
   exit 1
 fi

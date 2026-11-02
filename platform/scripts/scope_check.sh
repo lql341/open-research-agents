@@ -18,7 +18,7 @@ trap 'rm -f "$tmp"' EXIT
   git diff --name-only
   # Untracked repro and decision records are audit artifacts written by the
   # gate or by a human. Committed ones are still checked above.
-  git ls-files --others --exclude-standard | grep -vE '^\.agentlab/(repro|decisions)/' || true
+  git ls-files --others --exclude-standard | grep -vE '^\.agentlab/(repro|decisions|tickets|candidates|sources)/' || true
 } | sort -u > "$tmp"
 
 bad=0

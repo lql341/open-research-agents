@@ -297,9 +297,10 @@ Important:
 - `agentlab gate <ws>` defaults to the **worker worktree**. The base checkout may
   still hold the unimplemented stub, so gating it could produce a misleading
   `UNVERIFIED`. Use `--here` only when you mean the current checkout.
-- `agentlab integrate` refuses a dirty tree. Untracked `.agentlab/repro/*.json`
-  and `.agentlab/decisions/*.json` records are the only exception; they are
-  committed with the integration.
+- `agentlab integrate` refuses a dirty tree. Untracked records under
+  `.agentlab/repro/`, `.agentlab/decisions/`, `.agentlab/tickets/`,
+  `.agentlab/candidates/`, and `.agentlab/sources/` are the only exception; they
+  are committed with the integration.
 - `agentlab status` shows `WORKTREE=repro` when the only uncommitted files are
   gate records.
 

@@ -225,8 +225,9 @@ agentlab pi <ws>
 agentlab gate <ws> --here
 ```
 
-`agentlab integrate` 会拒绝脏的 base 检出。未跟踪的 `.agentlab/repro/*.json`
-和 `.agentlab/decisions/*.json` 审计记录是唯一例外；它们会随 integration 一起提交。
+`agentlab integrate` 会拒绝脏的 base 检出。`.agentlab/repro/`、`.agentlab/decisions/`、
+`.agentlab/tickets/`、`.agentlab/candidates/`、`.agentlab/sources/` 下的未跟踪记录是唯一例外；
+它们会随 integration 一起提交。
 
 当唯一未提交的文件是生成的 repro 或 decision 记录时，`agentlab status` 显示
 `WORKTREE=repro`。`clean` 表示没有未提交内容。

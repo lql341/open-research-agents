@@ -239,7 +239,8 @@ def main(argv: list[str]) -> int:
             if not lines:
                 wt_state = "clean"
             elif all(
-                line.startswith("?? .agentlab/repro/") or line.startswith("?? .agentlab/decisions/")
+                line.startswith(("?? .agentlab/repro/", "?? .agentlab/decisions/", "?? .agentlab/tickets/",
+                                 "?? .agentlab/candidates/", "?? .agentlab/sources/"))
                 for line in lines
             ):
                 wt_state = "repro"

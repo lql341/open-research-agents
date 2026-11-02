@@ -238,9 +238,10 @@ To force the current checkout:
 agentlab gate <ws> --here
 ```
 
-`agentlab integrate` refuses a dirty base checkout. Untracked
-`.agentlab/repro/*.json` and `.agentlab/decisions/*.json` audit records are the
-only exception; they are committed with the integration.
+`agentlab integrate` refuses a dirty base checkout. Untracked records under
+`.agentlab/repro/`, `.agentlab/decisions/`, `.agentlab/tickets/`,
+`.agentlab/candidates/`, and `.agentlab/sources/` are the only exception; they are
+committed with the integration.
 
 `agentlab status` shows `WORKTREE=repro` when the only uncommitted files are
 generated repro or decision records. `clean` means nothing is uncommitted.

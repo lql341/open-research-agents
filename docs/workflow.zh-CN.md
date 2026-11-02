@@ -278,8 +278,9 @@ git merge --no-ff integration
 
 - `agentlab gate <ws>` **默认在 worker 工作树中运行**。主检出可能还是桩，在在主检出中运行会得到
   误导性的 `UNVERIFIED`。只有确实要针对当前检出运行时才使用 `--here`。
-- `agentlab integrate` 会拒绝脏工作区。唯一例外是未跟踪的 `.agentlab/repro/*.json`
-  和 `.agentlab/decisions/*.json`，它们会随 integration 一起提交。
+- `agentlab integrate` 会拒绝脏工作区。唯一例外是 `.agentlab/repro/`、
+  `.agentlab/decisions/`、`.agentlab/tickets/`、`.agentlab/candidates/`、
+  `.agentlab/sources/` 下的未跟踪记录，它们会随 integration 一起提交。
 - `agentlab status` 里 `WORKTREE=repro` 表示只有门禁生成的记录没提交，没有源码改动。
 
 ---
