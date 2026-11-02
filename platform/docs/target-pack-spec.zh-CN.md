@@ -159,8 +159,9 @@ agentlab update                 # 重新应用记录的 pack，仅新增文件
 agentlab uninstall              # 从仓库移除 .agentlab
 ```
 
-`update` 不会覆盖已有的 `.agentlab/` 文件。如果生成的 `.agentlab/AGENTS.md`
-会变化，它会写入 `AGENTS.md.new` 并打印 diff，不覆盖人工修改的文件。
+`update` 不会覆盖已有的 `.agentlab/` 文件，也不会覆盖已有 env 值。它会补充不存在的文件，
+并追加 target/domain pack 新增的 key。如果生成的 `.agentlab/AGENTS.md` 会变化，它会写入
+`AGENTS.md.new` 并打印 diff，不覆盖人工修改的文件。
 
 ---
 

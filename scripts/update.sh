@@ -59,6 +59,30 @@ echo
 echo "-- re-apply pack (existing files are kept)"
 "$PLATFORM/platform/scripts/install_target.sh" "$DOMAIN" "$TARGET" "$ROOT"
 
+# Add keys that the pack gained since the last install. Existing values are
+# never overwritten: a changed command, model, or threshold is a human decision.
+merge_env() {
+  local src="$1" dst="$2" label="$3"
+  [ -f "$src" ] && [ -f "$dst" ] || return 0
+  local missing
+  missing="$(mktemp)"
+  : > "$missing"
+  while IFS= read -r line; do
+    case "$line" in ''|'#'*) continue ;; esac
+    local key="${line%%=*}"
+    [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+    grep -qE "^[[:space:]]*${key}[[:space:]]*=" "$dst" || printf '%s\n' "$line" >> "$missing"
+  done < "$src"
+  if [ -s "$missing" ]; then
+    printf '\n# Added by agentlab update from %s\n' "$label" >> "$dst"
+    cat "$missing" >> "$dst"
+    echo "  added $label keys: $(cut -d= -f1 "$missing" | tr '\n' ' ')"
+  fi
+  rm -f "$missing"
+}
+merge_env "$HOME_DIR/targets/$TARGET/target.env" .agentlab/target.env "target/$TARGET"
+merge_env "$HOME_DIR/domains/$DOMAIN/domain.env" .agentlab/domain.env "domain/$DOMAIN"
+
 # Generated AGENTS.md is rebuilt from the platform + domain + target rules.
 # Compare, but do not overwrite a file the human may have edited.
 GEN="$(mktemp)"

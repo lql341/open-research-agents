@@ -25,7 +25,7 @@ Assumes:
 
 ```bash
 cd ~/open-research-agents
-bash tests/platform_smoke.sh        # expect: 88 passed, 0 failed
+bash tests/platform_smoke.sh        # expect: 92 passed, 0 failed
 bash scripts/validate-harness.sh    # expect: 27 passed, 0 failed
 ```
 

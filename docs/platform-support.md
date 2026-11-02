@@ -137,7 +137,7 @@ for f in bin/agentlab scripts/*.sh platform/scripts/*.sh; do /bin/bash -n "$f"; 
 bash tests/platform_smoke.sh
 ```
 
-Current status: **88 smoke checks and 27 harness-validation checks pass**, on both
+Current status: **92 smoke checks and 27 harness-validation checks pass**, on both
 macOS `/bin/bash` 3.2 and Bash 5.x.
 
 ## If a platform does not work

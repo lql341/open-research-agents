@@ -271,12 +271,14 @@ agentlab uninstall                          # 从当前仓库移除 .agentlab
 agentlab uninstall --force --yes            # 工作树仍存在时也执行
 ```
 
-`update` 执行三步：
+`update` 执行四步：
 
 1. 对工具仓库执行 `git pull --ff-only`（工作区脏或使用 `--no-pull` 时跳过）；
 2. 使用 `.agentlab/.pack` 中记录的 domain 和 target 重新运行 `install`，
    只添加不存在的文件；
-3. 重新生成 `.agentlab/AGENTS.md`；如果内容不同，写入
+3. 将当前 target/domain pack 中新增的 key 补充到 `.agentlab/target.env` 和
+   `.agentlab/domain.env`；已有值不会被覆盖；
+4. 重新生成 `.agentlab/AGENTS.md`；如果内容不同，写入
    `.agentlab/AGENTS.md.new` 并打印 diff，不覆盖本地修改。
 
 `uninstall` 删除 `.agentlab/` 和生成的根 `AGENTS.md` 指针。它保留 `agent/*` 分支、

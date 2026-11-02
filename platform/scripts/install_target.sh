@@ -14,7 +14,8 @@ SRC_TARGET="$HOME_DIR/targets/$TARGET_NAME"
 [ -d "$SRC_TARGET" ] || { echo "no target pack: $TARGET_NAME"; exit 1; }
 
 DEST="$TARGET_REPO/.agentlab"
-mkdir -p "$DEST"/reports "$DEST"/RFC "$DEST"/repro "$DEST"/templates "$DEST"/sessions
+mkdir -p "$DEST"/reports "$DEST"/RFC "$DEST"/repro "$DEST"/templates "$DEST"/sessions \
+  "$DEST"/tickets "$DEST"/candidates "$DEST"/sources "$DEST"/decisions
 
 ADDED="$DEST/.install-added"
 : > "$ADDED"
@@ -75,7 +76,7 @@ else
   echo "root AGENTS.md exists; not modified (add a pointer to .agentlab/AGENTS.md manually if needed)"
 fi
 
-for d in reports RFC repro sessions; do touch "$DEST/$d/.gitkeep"; done
+for d in reports RFC repro sessions tickets candidates sources decisions; do touch "$DEST/$d/.gitkeep"; done
 [ -f "$DEST/verification/run_all.sh" ] && chmod +x "$DEST/verification/run_all.sh" || true
 # Only report files that survived: target scopes may replace domain scopes.
 KEPT="$(mktemp)"

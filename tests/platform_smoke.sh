@@ -114,6 +114,7 @@ rm -rf "$TMP_PROFILE"
 echo "== install / update / uninstall lifecycle"
 LIFE="$(mktemp -d)"
 LIFE_REPO="$LIFE/repo"
+export LIFE_REPO
 # A clean repository with no pre-existing .agentlab: this exercises the
 # install path rather than the "keep what is already there" path.
 mkdir -p "$LIFE_REPO"
@@ -126,6 +127,7 @@ grep -q "installed domain=cfd target=oneflow" /tmp/agentlab-life-install.log && 
 [ -f "$LIFE_REPO/.agentlab/AGENTS.md" ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: generated AGENTS.md missing"; }
 grep -q "# --- target: oneflow ---" "$LIFE_REPO/.agentlab/AGENTS.md" && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: target rules not merged"; }
 [ -f "$LIFE_REPO/.agentlab/scope/spatial.txt" ] && { fail=$((fail+1)); echo "FAILED: domain scope survived a target-scoped install"; } || pass=$((pass+1))
+[ -d "$LIFE_REPO/.agentlab/tickets" ] && [ -d "$LIFE_REPO/.agentlab/candidates" ] && [ -d "$LIFE_REPO/.agentlab/sources" ] && [ -d "$LIFE_REPO/.agentlab/decisions" ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: install did not create inbox/ticket directories"; }
 
 ( cd "$LIFE_REPO" && sed -i.bak 's/^BASE_REF=dev/BASE_REF=main/' .agentlab/target.env && rm -f .agentlab/target.env.bak && git add -A && git commit -q -m install ) >/dev/null
 
@@ -136,6 +138,18 @@ grep -q "added " /tmp/agentlab-life-reinstall.log && { fail=$((fail+1)); echo "F
 # update with no platform change reports up to date.
 if ( cd "$LIFE_REPO" && "$ROOT/bin/agentlab" update --no-pull >/tmp/agentlab-life-update.log 2>&1 ); then pass=$((pass+1)); else fail=$((fail+1)); echo "FAILED: update"; cat /tmp/agentlab-life-update.log; fi
 grep -q "AGENTS.md is up to date" /tmp/agentlab-life-update.log && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: update did not compare AGENTS.md"; }
+
+# update adds a missing env key without changing existing values.
+python3 - <<'PYCHECK'
+from pathlib import Path
+import os
+p=Path(os.environ['LIFE_REPO']) / '.agentlab' / 'target.env'
+s=p.read_text()
+p.write_text('\n'.join(line for line in s.splitlines() if not line.startswith('GITHUB_CLI='))+ '\n')
+PYCHECK
+if ( cd "$LIFE_REPO" && "$ROOT/bin/agentlab" update --no-pull >/tmp/agentlab-life-update-keys.log 2>&1 ); then pass=$((pass+1)); else fail=$((fail+1)); echo "FAILED: update env merge"; cat /tmp/agentlab-life-update-keys.log; fi
+grep -q '^GITHUB_CLI=gh-agent' "$LIFE_REPO/.agentlab/target.env" && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: update did not restore GITHUB_CLI"; }
+grep -q '^AGENTLAB_MODE=audit' "$LIFE_REPO/.agentlab/target.env" && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: update changed an existing env value"; }
 
 # uninstall removes the pack and the generated pointer.
 if ( cd "$LIFE_REPO" && "$ROOT/bin/agentlab" uninstall --yes >/tmp/agentlab-life-uninstall.log 2>&1 ); then pass=$((pass+1)); else fail=$((fail+1)); echo "FAILED: uninstall"; cat /tmp/agentlab-life-uninstall.log; fi

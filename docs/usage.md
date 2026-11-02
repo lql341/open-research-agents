@@ -288,13 +288,16 @@ agentlab uninstall                          # remove .agentlab from this reposit
 agentlab uninstall --force --yes            # also when worktrees still exist
 ```
 
-`update` performs three steps:
+`update` performs four steps:
 
 1. `git pull --ff-only` on the tool repository (skipped when dirty or with
    `--no-pull`);
 2. re-runs `install` with the domain and target recorded in `.agentlab/.pack`,
    adding only files that do not exist;
-3. rebuilds `.agentlab/AGENTS.md`; if it differs, writes
+3. adds missing keys from the current target and domain packs to
+   `.agentlab/target.env` and `.agentlab/domain.env`; existing values are not
+   overwritten;
+4. rebuilds `.agentlab/AGENTS.md`; if it differs, writes
    `.agentlab/AGENTS.md.new` and a diff instead of overwriting local edits.
 
 `uninstall` removes `.agentlab/` and the generated root `AGENTS.md` pointer. It

@@ -282,7 +282,7 @@ the model and consumes tokens.
 | Request | Command | Notes |
 |---|---|---|
 | Update the tool and pack | `cd <platform-repo> && agentlab update` | Confirm the platform tree is clean; if `.agentlab/AGENTS.md.new` appears, show the diff and do not overwrite automatically |
-| Update one target | `cd <target-repo> && agentlab update` | Adds only new files; inspect `git status` before committing |
+| Update one target | `cd <target-repo> && agentlab update` | Adds new files and missing env keys; existing values are not overwritten; inspect `git status` before committing |
 | Uninstall | `cd <target-repo> && agentlab uninstall` | Requires human confirmation; refuses while worker worktrees exist |
 | Clean worktrees | `agentlab clean <ws...>` | Removes worktrees, keeps branches and logs |
 

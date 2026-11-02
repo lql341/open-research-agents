@@ -9,7 +9,8 @@ TARGET="$(cd "${2:?target repo}" && pwd)"
 SRC="$HOME_DIR/domains/$DOMAIN"
 [ -d "$SRC" ] || { echo "no domain pack: $DOMAIN"; exit 1; }
 DEST="$TARGET/.agentlab"
-mkdir -p "$DEST"/reports "$DEST"/RFC "$DEST"/repro "$DEST"/templates "$DEST"/sessions
+mkdir -p "$DEST"/reports "$DEST"/RFC "$DEST"/repro "$DEST"/templates "$DEST"/sessions \
+  "$DEST"/tickets "$DEST"/candidates "$DEST"/sources "$DEST"/decisions
 
 copy_missing() {
   local from="$1" to="$2"
@@ -45,7 +46,7 @@ else
   echo "root AGENTS.md exists; add a pointer to .agentlab/AGENTS.md manually if needed"
 fi
 
-for d in reports RFC repro sessions; do touch "$DEST/$d/.gitkeep"; done
+for d in reports RFC repro sessions tickets candidates sources decisions; do touch "$DEST/$d/.gitkeep"; done
 [ -f "$DEST/verification/run_all.sh" ] && chmod +x "$DEST/verification/run_all.sh" || true
 echo "installed $DOMAIN -> $DEST"
 echo "next: edit .agentlab/domain.env and .agentlab/scope/*.txt, fill .agentlab/contracts/, then git add .agentlab && git commit"

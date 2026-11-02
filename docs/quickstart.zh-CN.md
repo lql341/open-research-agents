@@ -23,7 +23,7 @@
 
 ```bash
 cd ~/open-research-agents
-bash tests/platform_smoke.sh        # 期望：88 passed, 0 failed
+bash tests/platform_smoke.sh        # 期望：92 passed, 0 failed
 bash scripts/validate-harness.sh    # 期望：27 passed, 0 failed
 ```
 

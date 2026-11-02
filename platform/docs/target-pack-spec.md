@@ -166,9 +166,10 @@ agentlab update                 # re-apply the recorded pack, add only new files
 agentlab uninstall              # remove .agentlab from the repository
 ```
 
-`update` never overwrites an existing `.agentlab/` file. If the generated
-`.agentlab/AGENTS.md` would change, it writes `AGENTS.md.new` and prints a diff
-instead of overwriting a human-edited file.
+`update` never overwrites an existing `.agentlab/` file or an existing env value.
+It adds files that do not exist and appends keys that the target or domain pack
+gained. If the generated `.agentlab/AGENTS.md` would change, it writes
+`AGENTS.md.new` and prints a diff instead of overwriting a human-edited file.
 
 ---
 

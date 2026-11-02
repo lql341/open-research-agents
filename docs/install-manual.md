@@ -316,12 +316,15 @@ cd ~/open-research-agents
 agentlab update
 ```
 
-It performs three steps:
+It performs four steps:
 
 1. `git pull --ff-only` on the tool repository (skipped when the tree is dirty or
    `--no-pull` is used);
 2. re-applies the pack recorded in `.agentlab/.pack`, adding only new files;
-3. regenerates `.agentlab/AGENTS.md`; if it differs, writes
+3. adds missing keys from the current target and domain packs to
+   `.agentlab/target.env` and `.agentlab/domain.env`; existing values are never
+   overwritten;
+4. regenerates `.agentlab/AGENTS.md`; if it differs, writes
    `.agentlab/AGENTS.md.new` and prints a diff instead of overwriting local edits.
 
 After updating:
@@ -374,6 +377,10 @@ rm -rf ~/.pi/agentlab      # removes the worker login state
 | `<repo>/.agentlab/reports/` | Worker | One report per workstream |
 | `<repo>/.agentlab/RFC/` | Worker | Proposals awaiting a human |
 | `<repo>/.agentlab/repro/` | Gate / worker | Gate and run evidence |
+| `<repo>/.agentlab/tickets/` | Human / inbox | Ticket authorization ledger |
+| `<repo>/.agentlab/decisions/` | Human / inbox | Decision records |
+| `<repo>/.agentlab/candidates/` | GitHub source | Pending source candidates |
+| `<repo>/.agentlab/sources/` | Source | Last poll state per source |
 | `~/.config/agentlab/config.toml` | Operator | CLI configuration |
 | `~/.pi/agentlab/` | Operator | Worker Pi configuration |
 
