@@ -139,6 +139,7 @@ See [`docs/usage.md`](docs/usage.md) for details.
 ```bash
 bash tests/platform_smoke.sh        # 83 checks: scripts, CLI, install lifecycle, session guards
 bash scripts/validate-harness.sh    # 27 checks: full gate loop, no model calls
+bash scripts/demo-attention.sh      # one-command attention demo: candidate -> inbox -> ticket
 ```
 
 To verify that a worker can change code while the gate still rejects wrong

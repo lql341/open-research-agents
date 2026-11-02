@@ -168,6 +168,15 @@ agentlab decide candidate:<id> --approve --workstream <ws> --note "..."
 Source 状态保存在 `.agentlab/sources/github.json`；候选保存在
 `.agentlab/candidates/`。
 
+## 3.4 一条命令的演示
+
+```bash
+bash scripts/demo-attention.sh
+```
+
+它创建临时目标仓库，读取保存的 GitHub 通知 fixture，显示收件箱，批准一个候选，并打印
+已授权 ticket。不调用模型，也不访问 GitHub。
+
 ## 4. 长时间运行与中断
 
 使用 `thinking=high` 的 worker 可能运行数分钟。不要占用终端：

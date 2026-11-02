@@ -135,6 +135,7 @@ agentlab clean <ws...>                      删除工作树，保留分支和日
 ```bash
 bash tests/platform_smoke.sh        # 83 项：脚本、CLI、安装生命周期、session guard
 bash scripts/validate-harness.sh    # 27 项：完整门禁闭环，不调用模型
+bash scripts/demo-attention.sh      # 一条命令的注意力演示：candidate -> inbox -> ticket
 ```
 
 如需验证“worker 能修改代码，同时门禁能拒绝错误实现”，请按

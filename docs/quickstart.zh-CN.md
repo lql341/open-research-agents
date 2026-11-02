@@ -8,6 +8,9 @@
 [`install-manual.md`](install-manual.md)；完整开发流程见
 [`workflow.zh-CN.md`](workflow.zh-CN.md)。
 
+如果只想测试注意力层，运行 `bash scripts/demo-attention.sh`；几秒钟完成，不调用模型。
+本页其余部分介绍 worker 闭环。
+
 前提：
 
 - `agentlab` 已安装并在 `PATH` 里（或直接用 `~/open-research-agents/bin/agentlab`）；

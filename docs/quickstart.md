@@ -9,6 +9,10 @@ This page only gets you to the first success. Installation details are in
 [`install-manual.md`](install-manual.md); the full development process is in
 [`workflow.md`](workflow.md).
 
+If you only want to test the attention layer, run
+`bash scripts/demo-attention.sh`; it takes a few seconds and calls no model.
+The rest of this page is the worker loop.
+
 Assumes:
 
 - `agentlab` is installed and on `PATH` (or use `~/open-research-agents/bin/agentlab`);

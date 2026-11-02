@@ -179,6 +179,16 @@ explicit decision.
 Source state is stored in `.agentlab/sources/github.json`; candidates are stored
 in `.agentlab/candidates/`.
 
+## 3.4 One-command demo
+
+```bash
+bash scripts/demo-attention.sh
+```
+
+It creates a temporary target repository, polls a saved GitHub notification
+fixture, shows the inbox, approves one candidate, and prints the authorized
+ticket. It calls no model and does not touch GitHub.
+
 ## 4. Long runs and interruption
 
 A worker using `thinking=high` can take several minutes. Do not block the terminal:
