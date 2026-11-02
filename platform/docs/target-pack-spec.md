@@ -54,6 +54,21 @@ comments.
 Other keys are allowed; the platform ignores unknown keys. Target-specific
 variables can be consumed by the target's own verification scripts.
 
+Attention policy keys are optional. They control inbox classification and accept
+`pending`, `review`, `fyi`, or `ignore`:
+
+```sh
+ATTENTION_NEED_DECISION=pending
+ATTENTION_RFC=pending
+ATTENTION_BLOCKED=pending
+ATTENTION_GATE_FAIL=pending
+ATTENTION_GATE_UNVERIFIED=review
+ATTENTION_REPORT_READY=review
+ATTENTION_WORKER_FAILURE=pending
+ATTENTION_TICKET=pending
+ATTENTION_TICKET_REVIEW=review
+```
+
 Example:
 
 ```sh

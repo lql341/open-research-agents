@@ -216,6 +216,27 @@ the latest worker log. Categories are configured in `.agentlab/target.env` with
 `ATTENTION_*` keys. A decision applies only to the content it was made on; a
 changed report, RFC, gate, or log creates a new item.
 
+### 4.8 Ticket ledger
+
+A ticket records why a task is allowed and which policy snapshot it used. It
+does not replace the workstream scope or the gate.
+
+```bash
+agentlab ticket new <id> --title "..." --workstream <ws>
+agentlab ticket list --status proposed
+agentlab ticket show <id>
+agentlab ticket authorize <id>
+agentlab ticket revalidate <id>
+```
+
+A new ticket is `proposed` and appears in the inbox. Approve it with
+`agentlab decide ticket:<id> --approve`. The ticket stores `source`, `sender`,
+`strength`, `rule`, `policy_version`, `scope_ref`, `scope_hash`, and a history.
+
+`policy_version` hashes the human-owned policy inputs. If `AGENTS.md`,
+contracts, scope, mode, target, or base ref changes, `revalidate` marks the
+ticket `stale`; it must be authorized again before it can resume.
+
 ## 5. Run, review, integrate
 
 ```bash

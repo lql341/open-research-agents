@@ -105,6 +105,22 @@ agentlab inbox --json
 收件箱读取报告、RFC、每个 workstream 最新的 gate 和最新的 worker 日志。分类由
 `.agentlab/target.env` 中的 `ATTENTION_*` 键配置；旧安装包即使没有这些键也会使用默认值。
 
+## Ticket 账本
+
+Ticket 记录一个 workstream 任务为何被允许，以及使用的策略快照。它是账本，不是执行调度器。
+
+```bash
+cd ~/OneFLOW
+agentlab ticket new t1 --title "Fix io_paths single writer" --workstream runtime-io
+agentlab ticket list
+agentlab ticket show t1
+agentlab ticket authorize t1          # 或：agentlab decide ticket:t1 --approve
+agentlab ticket revalidate t1
+```
+
+Proposed 和 stale ticket 会出现在 `agentlab inbox` 中。contracts、scope、`AGENTS.md`、
+mode、target 或 base ref 变化后，`revalidate` 会将 ticket 标为 `stale`；必须重新授权。
+
 ## 分支规则
 
 - 当前本地检出使用 `BASE_REF=dev`。

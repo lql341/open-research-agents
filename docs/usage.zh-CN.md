@@ -83,6 +83,49 @@ ATTENTION_WORKER_FAILURE=pending
 `agentlab decide` 将决定记录在 `.agentlab/decisions/`。决定只对做出决定时的内容生效；
 报告、RFC、gate 或日志变化后会产生新条目。批准或拒绝 RFC 时，也会修改其 `Status` 字段。
 
+## 3.2 Ticket 账本（v0.3）
+
+Ticket 是一个 workstream 任务的授权记录，记录任务为何被允许以及依赖的策略快照。
+它不是执行调度器；worker 仍使用 workstream 的 scope 和 gate。
+
+```bash
+agentlab ticket new <id> --title "..." --workstream <ws>
+agentlab ticket list [--status STATUS] [--json]
+agentlab ticket show <id> [--json]
+agentlab ticket authorize <id>
+agentlab ticket reject <id> --reason "..."
+agentlab ticket set <id> running|review|blocked|ended --reason "..."
+agentlab ticket revalidate <id>
+agentlab ticket resume <id>
+```
+
+新 ticket 状态为 `proposed`，会以 `ticket:<id>` 出现在收件箱中。
+`agentlab decide ticket:<id> --approve` 授权；`--reject` 拒绝。
+
+Ticket 字段：
+
+```text
+id、title、workstream
+source、sender、strength、rule
+policy_version、scope_ref、scope_hash
+status、reason、created_at、updated_at、history
+```
+
+`policy_version` 对 `AGENTS.md`、contracts、scope 文件、mode、target 和 base ref 做哈希。
+其中任何内容变化后，`ticket revalidate` 会将 ticket 标为 `stale`。
+stale ticket 必须重新授权后才能恢复。
+
+生命周期：
+
+```text
+proposed -> authorized -> running -> review -> ended
+                   \-> blocked -> running
+proposed/authorized/running -> stale -> authorized
+任何非终态 -> stopped | rejected
+```
+
+`agentlab decide ticket:<id> --ack` 会被拒绝：ticket 必须明确批准或拒绝。
+
 ## 4. 长时间运行与中断
 
 使用 `thinking=high` 的 worker 可能运行数分钟。不要占用终端：

@@ -539,7 +539,7 @@ ships independently and leaves the previous one usable.
 
 - Pi worker in a worktree, independent session, scope, gate, report, repro.
 - OneFLOW target in audit mode; two read-only audits completed.
-- Platform and target packs; 58 smoke checks and 27 harness checks.
+- Platform and target packs; 73 smoke checks and 27 harness checks.
 
 Limitation: the human still decides what enters attention. There is no Source,
 Mandate, Ticket, Outbox, or attention view.
@@ -564,22 +564,29 @@ deterministic; no model calls; no new Source or autonomous action.
 Current implementation: `agentlab inbox` and `agentlab decide`; policy keys are
 in `.agentlab/target.env`. See [`docs/usage.md`](docs/usage.md).
 
-### v0.3 — Mandate-lite and Ticket-lite (next)
+### v0.3 — Mandate-lite and Ticket-lite (implemented, beta)
 
 Goal: make authorization explicit without importing the full dsh domain.
 
-- A task becomes a ticket with `source`, `sender`, `strength`
-  (`explicit`/`inferred`), `rule`, `policy_version`, `scope`, `status`, and
-  `assignments`.
-- Policy version hash; revalidate before resuming an ended ticket.
+- A ticket records `source`, `sender`, `strength` (`explicit`/`inferred`),
+  `rule`, `policy_version`, `scope_ref`, `scope_hash`, `status`, and `history`.
+- `policy_version` hashes `AGENTS.md`, contracts, scope, mode, target, and base
+  ref; `ticket revalidate` marks a changed ticket `stale`.
 - Ticket lifecycle: `proposed → authorized → running → review/blocked → ended`;
   resume and stop are explicit commands.
-- Keep scope and gate as the enforcement layer.
+- Keep scope and gate as the enforcement layer. The ticket references the
+  workstream scope, so it cannot widen it.
+- This is a ledger, not an execution scheduler; per-ticket sessions and
+  assignments are deferred to v0.6.
 
-Acceptance: every ticket records why it is allowed; resume revalidates the
-mandate; no ticket can widen its own scope.
+Acceptance: every ticket records why it is allowed; revalidation marks policy
+changes; no ticket can widen scope.
 
-### v0.4 — Source and Trigger (GitHub first)
+Current implementation: `agentlab ticket new/list/show/authorize/reject/set/
+revalidate/resume`; proposed and stale tickets appear in the inbox. See
+[`docs/usage.md`](docs/usage.md).
+
+### v0.4 — Source and Trigger (GitHub first, next)
 
 Goal: let work enter from an event stream without losing control.
 

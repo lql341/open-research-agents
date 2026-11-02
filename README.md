@@ -5,7 +5,7 @@
 A bounded multi-agent development system built on Pi. The platform is generic;
 CFD is the first domain and OneFLOW is the first target.
 
-Status: **v0.1 scaffold + v0.2 Attention Inbox (beta)**. The platform scripts are
+Status: **v0.1 scaffold + v0.2 Attention Inbox + v0.3 Ticket Ledger (beta)**. The platform scripts are
 Bash and run on the system Bash 3.2 shipped with macOS. macOS, Linux, WSL, and Windows Git Bash are
 supported; native PowerShell is not. See
 [`docs/platform-support.md`](docs/platform-support.md).
@@ -121,6 +121,7 @@ agentlab config                             show the resolved configuration
 agentlab status [--json]                    workstreams, reports, gates, pending RFCs
 agentlab inbox [--all] [--json]             attention inbox: only items that need a human
 agentlab decide <id> [--ack|--approve|--reject] [--note TEXT]
+agentlab ticket <new|list|show|authorize|reject|set|revalidate|resume> ...
 agentlab preflight <ws>
 agentlab run <ws> [--detach] [extra...]
 agentlab gate <ws> [--here]                 gate the worker worktree by default
@@ -135,7 +136,7 @@ See [`docs/usage.md`](docs/usage.md) for details.
 ## Platform tests
 
 ```bash
-bash tests/platform_smoke.sh        # 58 checks: scripts, CLI, install lifecycle, session guards
+bash tests/platform_smoke.sh        # 73 checks: scripts, CLI, install lifecycle, session guards
 bash scripts/validate-harness.sh    # 27 checks: full gate loop, no model calls
 ```
 

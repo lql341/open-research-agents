@@ -531,7 +531,7 @@ v0.1 的协作是**异步的**：worker 通过 `TASKS.md`、`contracts/`、`RFC/
 
 - Pi worker 在独立工作树和会话中运行；scope、门禁、报告、repro 已打通。
 - OneFLOW target 处于 audit 模式；两个只读审计已完成。
-- 平台和 target pack；58 项 smoke 检查和 27 项 harness 检查。
+- 平台和 target pack；73 项 smoke 检查和 27 项 harness 检查。
 
 局限：仍由人决定什么进入注意力；没有 Source、Mandate、Ticket、Outbox 或注意力视图。
 
@@ -553,20 +553,25 @@ v0.1 的协作是**异步的**：worker 通过 `TASKS.md`、`contracts/`、`RFC/
 当前实现：`agentlab inbox` 和 `agentlab decide`；策略键位于 `.agentlab/target.env`。
 参见 [`docs/usage.zh-CN.md`](docs/usage.zh-CN.md)。
 
-### v0.3 — Mandate-lite 与 Ticket-lite（下一步）
+### v0.3 — Mandate-lite 与 Ticket-lite（已实现，beta）
 
 目标：让授权显式，但不引入完整 dsh 领域模型。
 
-- 任务升级为 ticket，包含 `source`、`sender`、`strength`（`explicit`/`inferred`）、
-  `rule`、`policy_version`、`scope`、`status` 和 `assignments`。
-- 计算 policy version hash；结束的 ticket 恢复前重新校验。
+- Ticket 记录 `source`、`sender`、`strength`（`explicit`/`inferred`）、`rule`、
+  `policy_version`、`scope_ref`、`scope_hash`、`status` 和 `history`。
+- `policy_version` 对 `AGENTS.md`、contracts、scope、mode、target 和 base ref 做哈希；
+  `ticket revalidate` 将变化的 ticket 标为 `stale`。
 - Ticket 生命周期：`proposed → authorized → running → review/blocked → ended`；
   恢复和停止是显式命令。
-- scope 和 gate 仍是强制层。
+- scope 和 gate 仍是强制层。Ticket 引用 workstream scope，因此不能扩大 scope。
+- 这是账本，不是执行调度器；每 ticket 的 session 和 assignment 留到 v0.6。
 
-验收：每个 ticket 记录其被允许的原因；恢复时重新校验 mandate；ticket 不能扩大自身 scope。
+验收：每个 ticket 记录其被允许的原因；revalidation 能标记策略变化；ticket 不能扩大 scope。
 
-### v0.4 — Source 与 Trigger（先接 GitHub）
+当前实现：`agentlab ticket new/list/show/authorize/reject/set/revalidate/resume`；
+proposed 和 stale ticket 会出现在收件箱。参见 [`docs/usage.zh-CN.md`](docs/usage.zh-CN.md)。
+
+### v0.4 — Source 与 Trigger（先接 GitHub，下一步）
 
 目标：让工作从事件流进入，同时不失去控制。
 

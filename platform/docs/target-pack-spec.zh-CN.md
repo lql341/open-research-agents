@@ -50,6 +50,20 @@ targets/<target>/
 
 允许其他 key；平台会忽略未知 key。target 自己的验证脚本可以读取 target 特有变量。
 
+注意力策略 key 是可选的，控制收件箱分类，取值为 `pending`、`review`、`fyi` 或 `ignore`：
+
+```sh
+ATTENTION_NEED_DECISION=pending
+ATTENTION_RFC=pending
+ATTENTION_BLOCKED=pending
+ATTENTION_GATE_FAIL=pending
+ATTENTION_GATE_UNVERIFIED=review
+ATTENTION_REPORT_READY=review
+ATTENTION_WORKER_FAILURE=pending
+ATTENTION_TICKET=pending
+ATTENTION_TICKET_REVIEW=review
+```
+
 示例：
 
 ```sh

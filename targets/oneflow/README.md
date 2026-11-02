@@ -110,6 +110,24 @@ The inbox reads reports, RFCs, the latest gate per workstream, and the latest
 worker log. Categories are configured by `ATTENTION_*` keys in
 `.agentlab/target.env`; defaults work even for an older installed pack.
 
+## Ticket ledger
+
+A ticket records why a workstream task is allowed and which policy snapshot it
+used. It is a ledger, not an execution scheduler.
+
+```bash
+cd ~/OneFLOW
+agentlab ticket new t1 --title "Fix io_paths single writer" --workstream runtime-io
+agentlab ticket list
+agentlab ticket show t1
+agentlab ticket authorize t1          # or: agentlab decide ticket:t1 --approve
+agentlab ticket revalidate t1
+```
+
+Proposed and stale tickets appear in `agentlab inbox`. If a contract, scope,
+`AGENTS.md`, mode, target, or base ref changes, `revalidate` marks the ticket
+`stale`; it must be authorized again.
+
 ## Branch rules
 
 - `BASE_REF=dev` for this local checkout.

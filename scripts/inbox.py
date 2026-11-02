@@ -15,6 +15,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import tickets
+
 CATEGORIES = ("pending", "review", "fyi")
 PRIORITY = {"pending": "P1", "review": "P2", "fyi": "P3"}
 DEFAULT_POLICY = {
@@ -25,6 +27,8 @@ DEFAULT_POLICY = {
     "gate_unverified": "review",
     "report_ready": "review",
     "worker_failure": "pending",
+    "ticket": "pending",
+    "ticket_review": "review",
 }
 ERROR_MARKERS = (
     "OpenAI API error",
@@ -75,6 +79,8 @@ def policy_from_env(env: dict[str, str]) -> dict[str, str]:
         "ATTENTION_GATE_UNVERIFIED": "gate_unverified",
         "ATTENTION_REPORT_READY": "report_ready",
         "ATTENTION_WORKER_FAILURE": "worker_failure",
+        "ATTENTION_TICKET": "ticket",
+        "ATTENTION_TICKET_REVIEW": "ticket_review",
     }
     for key, kind in mapping.items():
         value = env.get(key, "").strip().lower()
@@ -213,6 +219,39 @@ def worker_item(path: Path, workstream: str, policy: dict[str, str]) -> dict[str
     }
 
 
+def ticket_items(agentlab: Path, policy: dict[str, str]) -> list[dict[str, object]]:
+    items: list[dict[str, object]] = []
+    directory = agentlab / "tickets"
+    if not directory.is_dir():
+        return items
+    for path in sorted(directory.glob("*.json")):
+        try:
+            ticket = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        status = ticket.get("status")
+        if status in ("proposed", "stale", "blocked"):
+            kind = "ticket"
+        elif status == "review":
+            kind = "ticket_review"
+        else:
+            continue
+        category = policy.get(kind, "pending")
+        if category == "ignore":
+            continue
+        items.append({
+            "id": f"ticket:{ticket.get('id', path.stem)}",
+            "kind": kind,
+            "category": category,
+            "title": str(ticket.get("title", path.stem)),
+            "detail": f"status={status} workstream={ticket.get('workstream', '-')} policy={ticket.get('policy_version', '-')}",
+            "at": ticket.get("updated_at", ""),
+            "path": str(path),
+            "fingerprint": fingerprint(path.read_text(encoding="utf-8", errors="replace")),
+        })
+    return items
+
+
 def load_decisions(decisions_dir: Path) -> dict[str, set[str]]:
     decisions: dict[str, set[str]] = {}
     if not decisions_dir.is_dir():
@@ -247,6 +286,7 @@ def collect(root: Path) -> tuple[dict[str, str], list[dict[str, object]]]:
         item = rfc_item(path, policy)
         if item:
             items.append(item)
+    items.extend(ticket_items(agentlab, policy))
     for ws in modules:
         path = latest_repro(agentlab / "repro", ws)
         if path:
@@ -317,6 +357,21 @@ def command_decide(args: argparse.Namespace) -> int:
         print(f"decide: no open item with id {args.id}", file=sys.stderr)
         return 2
     decision = "approved" if args.approve else "rejected" if args.reject else "acknowledged"
+
+    if item["kind"] == "ticket":
+        ticket_id = str(item["id"]).split(":", 1)[1]
+        if decision == "approved":
+            tickets.transition(root, tickets.load(root, ticket_id), "authorized",
+                               args.note or "attention inbox approval", "human")
+        elif decision == "rejected":
+            tickets.transition(root, tickets.load(root, ticket_id), "rejected",
+                               args.note or "attention inbox rejection", "human")
+        else:
+            print("decide: a ticket requires --approve or --reject", file=sys.stderr)
+            return 2
+    elif item["kind"] == "ticket_review" and decision != "acknowledged":
+        print("decide: a ticket review requires --ack", file=sys.stderr)
+        return 2
 
     if item["kind"] == "rfc" and decision in ("approved", "rejected"):
         path = Path(str(item["path"]))

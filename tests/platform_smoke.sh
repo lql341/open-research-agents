@@ -260,6 +260,55 @@ assert 'rfc:spatial-test' not in ids
 PYCHECK2
 rm -rf "$INBOX" "$INBOX_WT"
 
+echo "== ticket ledger"
+TICKET="$TMP/ticket"
+mkdir -p "$TICKET"
+cp -R "$ROOT/tests/fixtures/mini-target/." "$TICKET/"
+( cd "$TICKET" && git init -q -b main && git add -A && git commit -q -m init ) >/dev/null
+
+( cd "$TICKET" && "$ROOT/bin/agentlab" ticket new t1 --title "Ticket test" --workstream spatial >/tmp/agentlab-ticket-new.txt 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: ticket new"; cat /tmp/agentlab-ticket-new.txt; }
+( cd "$TICKET" && "$ROOT/bin/agentlab" ticket show t1 --json >/tmp/agentlab-ticket.json 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: ticket show"; }
+python3 - <<'PYCHECK' && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: ticket fields"; }
+import json
+t=json.load(open('/tmp/agentlab-ticket.json'))
+assert t['status']=='proposed'
+assert len(t['policy_version'])==16
+assert t['scope_ref']=='.agentlab/scope/spatial.txt'
+PYCHECK
+
+( cd "$TICKET" && "$ROOT/bin/agentlab" inbox --json >/tmp/agentlab-ticket-inbox.json 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: ticket inbox"; }
+python3 - <<'PYCHECK' && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: ticket inbox item"; }
+import json
+items={i['id']:i for i in json.load(open('/tmp/agentlab-ticket-inbox.json'))['items']}
+assert items['ticket:t1']['category']=='pending'
+assert items['ticket:t1']['kind']=='ticket'
+PYCHECK
+
+( cd "$TICKET" && "$ROOT/bin/agentlab" decide ticket:t1 --approve --note "approved" >/tmp/agentlab-ticket-approve.txt 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: ticket approve"; }
+( cd "$TICKET" && "$ROOT/bin/agentlab" ticket show t1 --json >/tmp/agentlab-ticket-authorized.json 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: ticket show authorized"; }
+python3 - <<'PYCHECK' && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: ticket authorized"; }
+import json
+assert json.load(open('/tmp/agentlab-ticket-authorized.json'))['status']=='authorized'
+PYCHECK
+
+printf '\n# policy change\n' >> "$TICKET/.agentlab/scope/spatial.txt"
+( cd "$TICKET" && "$ROOT/bin/agentlab" ticket revalidate t1 >/tmp/agentlab-ticket-revalidate.txt 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: ticket revalidate"; }
+( cd "$TICKET" && "$ROOT/bin/agentlab" ticket show t1 --json >/tmp/agentlab-ticket-stale.json 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: ticket show stale"; }
+python3 - <<'PYCHECK' && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: ticket stale"; }
+import json
+assert json.load(open('/tmp/agentlab-ticket-stale.json'))['status']=='stale'
+PYCHECK
+( cd "$TICKET" && "$ROOT/bin/agentlab" ticket authorize t1 >/tmp/agentlab-ticket-reauth.txt 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: ticket reauthorize"; }
+( cd "$TICKET" && "$ROOT/bin/agentlab" ticket set t1 running >/dev/null 2>&1 && "$ROOT/bin/agentlab" ticket set t1 review >/dev/null 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: ticket review transition"; }
+( cd "$TICKET" && "$ROOT/bin/agentlab" inbox --json >/tmp/agentlab-ticket-review.json 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: ticket review inbox"; }
+python3 - <<'PYCHECK' && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: ticket review category"; }
+import json
+items={i['id']:i for i in json.load(open('/tmp/agentlab-ticket-review.json'))['items']}
+assert items['ticket:t1']['category']=='review'
+assert items['ticket:t1']['kind']=='ticket_review'
+PYCHECK
+rm -rf "$TICKET"
+
 echo "----"
 echo "smoke: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

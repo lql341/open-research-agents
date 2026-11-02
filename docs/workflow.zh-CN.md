@@ -203,6 +203,25 @@ agentlab decide <id> --ack|--approve|--reject --note "..."
 日志。分类通过 `.agentlab/target.env` 中的 `ATTENTION_*` 配置。决定只对做出决定时的
 内容生效；报告、RFC、gate 或日志变化后会产生新条目。
 
+### 4.8 Ticket 账本
+
+Ticket 记录任务为何被允许以及使用的策略快照，不替代 workstream scope 或 gate。
+
+```bash
+agentlab ticket new <id> --title "..." --workstream <ws>
+agentlab ticket list --status proposed
+agentlab ticket show <id>
+agentlab ticket authorize <id>
+agentlab ticket revalidate <id>
+```
+
+新 ticket 状态为 `proposed`，会出现在收件箱中。使用
+`agentlab decide ticket:<id> --approve` 批准。Ticket 保存 `source`、`sender`、
+`strength`、`rule`、`policy_version`、`scope_ref`、`scope_hash` 和历史记录。
+
+`policy_version` 对人所有的策略输入做哈希。`AGENTS.md`、contracts、scope、mode、
+target 或 base ref 变化后，`revalidate` 会将 ticket 标为 `stale`；必须重新授权后才能恢复。
+
 ## 5. 运行、审查、集成
 
 ```bash

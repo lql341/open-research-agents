@@ -98,6 +98,7 @@ agentlab - run Pi-based collaborative workstreams in a target repository
   agentlab status [--json]                    workstream, report, gate and pending decisions
   agentlab inbox [--all] [--json]             attention inbox: only items that need a human
   agentlab decide <id> [--ack|--approve|--reject] [--note TEXT]
+  agentlab ticket <new|list|show|authorize|reject|set|revalidate|resume> ...
   agentlab preflight <workstream>
   agentlab run <workstream> [extra...]        start a worker (mode comes from .agentlab/target.env)
       --detach                                run it in the background; follow with tail/status
@@ -183,6 +184,13 @@ case "$cmd" in
     [ -n "$PYTHON" ] || { echo "agentlab: python3 (or python) is required for 'decide'" >&2; exit 2; }
     with_profile
     exec "$PYTHON" "$AGENTLAB/scripts/inbox.py" decide "$@"
+    ;;
+
+  ticket)
+    has_agentlab
+    [ -n "$PYTHON" ] || { echo "agentlab: python3 (or python) is required for 'ticket'" >&2; exit 2; }
+    with_profile
+    exec "$PYTHON" "$AGENTLAB/scripts/tickets.py" "$@"
     ;;
 
   preflight)

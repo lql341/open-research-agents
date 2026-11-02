@@ -88,6 +88,51 @@ applies only to the exact content it was made on; a changed report, RFC, gate, o
 log produces a new item. Approving or rejecting an RFC also changes its `Status`
 field.
 
+## 3.2 Ticket ledger (v0.3)
+
+A ticket is an authorization record for a workstream task. It records why the
+task is allowed and which policy snapshot it relied on. It is not an execution
+scheduler; workers still use the workstream scope and gate.
+
+```bash
+agentlab ticket new <id> --title "..." --workstream <ws>
+agentlab ticket list [--status STATUS] [--json]
+agentlab ticket show <id> [--json]
+agentlab ticket authorize <id>
+agentlab ticket reject <id> --reason "..."
+agentlab ticket set <id> running|review|blocked|ended --reason "..."
+agentlab ticket revalidate <id>
+agentlab ticket resume <id>
+```
+
+A new ticket starts as `proposed` and appears in the inbox as `ticket:<id>`.
+`agentlab decide ticket:<id> --approve` authorizes it; `--reject` rejects it.
+
+Ticket fields include:
+
+```text
+id, title, workstream
+source, sender, strength, rule
+policy_version, scope_ref, scope_hash
+status, reason, created_at, updated_at, history
+```
+
+`policy_version` hashes `AGENTS.md`, contracts, scope files, mode, target, and
+base ref. If any of those change, `ticket revalidate` marks the ticket `stale`.
+A stale ticket must be authorized again before it can resume.
+
+Lifecycle:
+
+```text
+proposed -> authorized -> running -> review -> ended
+                   \-> blocked -> running
+proposed/authorized/running -> stale -> authorized
+any non-terminal -> stopped | rejected
+```
+
+`agentlab decide ticket:<id> --ack` is refused: a ticket requires an explicit
+approval or rejection.
+
 ## 4. Long runs and interruption
 
 A worker using `thinking=high` can take several minutes. Do not block the terminal:
