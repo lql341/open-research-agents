@@ -45,7 +45,7 @@ language of the repository they belong to.
 | [`platform/docs/domain-pack-spec.md`](platform/docs/domain-pack-spec.md) | Humans | Domain pack specification |
 | [`platform/docs/governance.md`](platform/docs/governance.md) | Humans | Authorization model and current enforcement |
 | [`platform/docs/verification.md`](platform/docs/verification.md) | Humans | Gate layers and exit codes |
-| [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) | Humans | Long-term plan (planning artifact) |
+| [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) | Humans | Living roadmap and design record |
 
 ### Worked example target
 

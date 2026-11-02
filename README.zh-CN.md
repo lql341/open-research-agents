@@ -41,7 +41,7 @@ tests/fixtures/         平台 smoke test 使用的小型夹具
 | [`platform/docs/domain-pack-spec.zh-CN.md`](platform/docs/domain-pack-spec.zh-CN.md) | 人 | domain pack 规范 |
 | [`platform/docs/governance.zh-CN.md`](platform/docs/governance.zh-CN.md) | 人 | 授权模型与当前强制程度 |
 | [`platform/docs/verification.zh-CN.md`](platform/docs/verification.zh-CN.md) | 人 | 门禁分层与退出码 |
-| [`IMPLEMENTATION_PLAN.zh-CN.md`](IMPLEMENTATION_PLAN.zh-CN.md) | 人 | 长期计划（规划文件） |
+| [`IMPLEMENTATION_PLAN.zh-CN.md`](IMPLEMENTATION_PLAN.zh-CN.md) | 人 | 持续更新的路线图与设计记录 |
 
 ### 完整示例 target
 
@@ -141,7 +141,7 @@ bash scripts/validate-harness.sh    # 27 项：完整门禁闭环，不调用模
 - `platform/` 位于目标仓库之外；worker 无法通过修改仓库来修改门禁。
 - 验证门禁的有效性完全取决于 target 注册的算例。
 - v0.1 不实现隐式时间积分、MPI/GPU 性能优化、多项目协调或 Web 面板。
-- 长期计划见 [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)。
+- 路线图见 [`IMPLEMENTATION_PLAN.zh-CN.md`](IMPLEMENTATION_PLAN.zh-CN.md)。
 
 ## License
 

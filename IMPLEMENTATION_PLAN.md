@@ -2,9 +2,10 @@
 
 # Open Research Agents — Consolidated Implementation Plan
 
-> **Historical planning artifact.** This document records the v1.0 synthesis and
-> its design rationale. The current repository uses `examples/validation/target`,
-> `tests/fixtures/mini-target`, and `targets/oneflow`; the current process is in
+> **Living plan.** v0.1 records the initial implementation and its design
+> rationale; the roadmap below is the current direction. The repository uses
+> `examples/validation/target`, `tests/fixtures/mini-target`, and
+> `targets/oneflow`; the current process is in
 > [`docs/workflow.md`](docs/workflow.md).
 
 **Status:** Draft v1.0 (consolidated)
@@ -98,7 +99,8 @@ v0.1 does not include:
 - Workers may add tests only in the existing pattern: one test target lists the
   production sources it needs; no new test entry point and no build-system change.
 - Next step: the human confirms two disjoint code workstreams and switches
-  `AGENTLAB_MODE` to `worker`.
+  `AGENTLAB_MODE` to `worker`. This execution work can proceed in parallel with
+  the next product milestone, the v0.2 Attention Inbox.
 
 ## 2. Overall architecture
 
@@ -525,61 +527,149 @@ Run it once per worker; a human or a read-only lead summarizes the decisions.
 
 ## 8. Roadmap
 
-### v0.1 — runnable two-worker CFD demo
+The direction is **attention governance first**. The execution layer already
+exists: a Pi worker, an isolated worktree, scope enforcement, a three-state gate,
+and a report. The remaining work is the control plane that decides what deserves
+human attention and what work is authorized.
 
-- `platform/` + `domains/cfd/` + `examples/cfd-mini`;
-- single Worker Spatial S1 passes;
-- two workers: Spatial S1 + Temporal T1;
-- G0–G4 gates;
-- commit/report/repro;
-- merge to main after human approval.
+Absorb dsh-superagent in layers. Do not adopt DSH as the runtime. Each phase
+ships independently and leaves the previous one usable.
 
-### v0.1.1 — hardening
+### v0.1 — manual task harness (done)
 
-- `preflight.sh`, `guard.ts`, `pre-push`;
-- `sync.sh`;
-- three-state `GATE_MODE`;
-- scope covers deletions/renames/untracked files;
-- platform script tests.
+- Pi worker in a worktree, independent session, scope, gate, report, repro.
+- OneFLOW target in audit mode; two read-only audits completed.
+- Platform and target packs; 48 smoke checks and 27 harness checks.
 
-### v0.2 — task engine and collaboration
+Limitation: the human still decides what enters attention. There is no Source,
+Mandate, Ticket, Outbox, or attention view.
 
-- TypeScript `platform/` (Bash scripts remain as a compatibility layer);
-- SQLite: `projects/tasks/assignments/agents/events/messages/approvals/artifacts`;
-- task state machine: `proposed → authorized → ready → running → blocked/review/rework/verified/completed`;
-- structured messages: `proposal/objection/ack/decision/blocked/review_request/verification_result`;
-- RFC state and contract version;
-- approval queue;
-- idempotent execution, failure recovery, external side-effect deduplication.
+### v0.2 — Attention Inbox (next)
 
-**Acceptance:** after restarting the coordination service, unfinished tasks can be recovered and safely continued, retried, or handed to a human.
+Goal: reduce attention cost before adding autonomy.
 
-### v0.3 — multiple projects
+- `agentlab inbox`: classify items as `pending`, `review`, or `fyi`.
+- Sources of items:
+  - `reports/*.md` with `status: need_decision`;
+  - `RFC/*.md` with `Status: proposed`;
+  - gate `FAIL` or `UNVERIFIED`;
+  - worker failures and interrupted runs.
+- `agentlab decide <id>`: record a decision and return it to the task board.
+- Attention policy: per type, choose `never`, `digest`, or `immediate`; cap the
+  number of questions per task.
 
-- Workspace → Project → Repository;
-- two independent repositories: OneFLOW and KylinFlow;
-- shared Agent Profiles, independent Assignments;
-- credentials and write permissions isolated per project;
-- unified status summary.
+Acceptance: one command shows only what needs a human; classification is
+deterministic; no model calls; no new Source or autonomous action.
 
-### v0.4 — bounded autonomous research
+### v0.3 — Mandate-lite and Ticket-lite
 
-- Campaign: long-term goals across projects;
-- permission inheritance: `Task Permissions ⊆ Campaign Permissions`;
-- budgets: workers, model budget, GPU hours;
-- Policy Engine uses deterministic rules; the LLM only proposes;
-- high-risk actions require human approval.
+Goal: make authorization explicit without importing the full dsh domain.
 
-### v0.5 — AI4S Domain Pack
+- A task becomes a ticket with `source`, `sender`, `strength`
+  (`explicit`/`inferred`), `rule`, `policy_version`, `scope`, `status`, and
+  `assignments`.
+- Policy version hash; revalidate before resuming an ended ticket.
+- Ticket lifecycle: `proposed → authorized → running → review/blocked → ended`;
+  resume and stop are explicit commands.
+- Keep scope and gate as the enforcement layer.
 
-- standardize `manifest.yaml`;
-- a second domain (molecular dynamics / AI4S inference / bioinformatics);
-- the platform kernel must not change to add it;
-- if `platform/` must change, record the abstraction defect.
+Acceptance: every ticket records why it is allowed; resume revalidates the
+mandate; no ticket can widen its own scope.
 
----
+### v0.4 — Source and Trigger (GitHub first)
+
+Goal: let work enter from an event stream without losing control.
+
+- One Source: GitHub notifications (read-only intake).
+- Trigger deduplication and Thread grouping; store the source payload.
+- Admission starts in `observe` mode: events become candidates in the Inbox, not
+  tickets. A human approves before work starts.
+- `agentlab source` configuration and health.
+
+Acceptance: a GitHub mention creates one candidate with sender, strength, and
+policy version; duplicate events are ignored; no automatic ticket creation.
+
+### v0.5 — Outbox and Channel
+
+Goal: make external communication durable and idempotent.
+
+- Outbox: write before send, retry with backoff, receipts.
+- One Channel: GitHub comments/replies.
+- No auto-merge; replies are limited to the ticket's source thread.
+
+Acceptance: a reply is sent once, retries do not duplicate comments, and a failed
+send is visible in `status`.
+
+### v0.6 — Ticket execution parity
+
+Goal: match dsh-superagent's execution semantics where they matter for solo work.
+
+- Per-ticket session and workspace, instead of per-workstream.
+- Subscriptions and follow-ups: a human message on the ticket thread resumes it.
+- Stop, retry, restart, and policy revalidation.
+- Background work and long-running job limits.
+
+Acceptance: a ticket survives restart, a follow-up resumes it, and a stopped
+ticket receives no automatic input.
+
+### v0.7 — Multi-target and attention view
+
+Goal: manage more than one repository without multiplying attention.
+
+- Multiple targets under one workspace.
+- One Inbox across targets, grouped by target and attention type.
+- Optional terminal or web attention view; no full activity dashboard.
+
+Acceptance: two targets share one Inbox; a worker in target A cannot write to
+target B.
+
+### v0.8 — Bounded autonomy
+
+Goal: allow proactive work only after the attention and authorization layers are
+proven.
+
+- Campaign: a long-term objective across tickets.
+- Budgets: workers, model cost, GPU hours.
+- Task permissions are a subset of campaign permissions.
+- Auto-accept only for rules whose observe-mode precision is measured and
+  accepted by a human.
+- High-risk actions still require human approval.
+
+Acceptance: budgets are enforced; auto-accept is limited to allowlisted rules;
+every decision is auditable.
+
+## 8A. What to reuse from dsh-superagent
+
+dsh-superagent is a reference implementation of the control plane. Reuse its
+concepts and selected core code under the MIT license; do not adopt DSH as the
+runtime.
+
+| dsh-superagent | agentlab phase | Reuse | Do not reuse |
+|---|---|---|---|
+| Attention philosophy (`docs/000`) | all | Principles: act only when asked or allowed, speak only when a person must act, one question at a time, honest reporting | — |
+| Domain model (`docs/001`) | v0.3, v0.6 | Trigger, Thread, Ticket, Mandate, Subscription, Assignment | Full multi-user admission model for solo use |
+| Execution model (`docs/003`) | v0.6 | Per-ticket session/workspace, resume, stop, revalidation | DSH presets, DSH job/subagent services |
+| `src/core` | v0.3, v0.6 | Domain types and pure rules | DSH-specific glue |
+| `src/policy.ts` | v0.3 | Gate, policy version, revalidation | Multi-user allowed lists as-is |
+| Outbox / Effects patterns | v0.5 | Write-before-send, receipts, retry, idempotency | DSH channel implementations |
+| Panel / attention routing | v0.2, v0.7 | Order by "needs a person"; hide healthy state | DSH Web client |
+| DSH executor and presets | — | — | Do not port |
+| DSH Source plugins | v0.4 | Event shape and deduplication ideas | Do not depend on DSH plugins |
+
+Rules:
+
+- Keep `platform/`, `domains/`, and `targets/` free of DSH types.
+- Reuse code only when it has no DSH dependency; otherwise reimplement the
+  concept.
+- Preserve the MIT copyright notice for copied code.
+- Do not add DSH as a dependency of the platform.
+- If a phase cannot ship without DSH, stop and record the reason; do not silently
+  couple the runtimes.
 
 ## 9. Sprint plan
+
+> Sprints 0–4 record the original v0.1 implementation. The roadmap in Section 8
+> supersedes them for future work.
 
 ### Sprint 0: review and foundation (1–2 days)
 
@@ -748,7 +838,9 @@ Success is not measured by the number of agents, but by these capabilities:
 4. interrupted long-running tasks can be recovered;
 5. multiple independent research repositories can be managed;
 6. research can proceed within explicit authorization and bounded budgets;
-7. the system can extend to other AI4S domains through Domain Packs.
+7. the system can extend to other AI4S domains through Domain Packs;
+8. daily human attention is bounded, visible, and spent only on decisions or
+   usable results.
 
 **Strategy:**
 

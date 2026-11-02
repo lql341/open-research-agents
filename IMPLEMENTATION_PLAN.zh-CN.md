@@ -2,7 +2,7 @@
 
 # Open Research Agents — 综合实施方案
 
-> **历史规划文件。** 本文记录 v1.0 综合方案，保留设计理由。
+> **持续更新的规划文件。** v0.1 记录初始实施和设计理由；下方路线图是当前方向。
 > 当前仓库使用 `examples/validation/target`、`tests/fixtures/mini-target` 和
 > `targets/oneflow`；当前流程见 [`docs/workflow.zh-CN.md`](docs/workflow.zh-CN.md)。
 
@@ -95,6 +95,7 @@ v0.1 不做：
 - worker 只允许按现有模式加测试：一个测试目标列出它需要的生产源，不新建测试入口、
   不改构建系统。
 - 下一步：人工确认两个不重叠的代码 workstream，切 `AGENTLAB_MODE=worker`。
+  该执行工作可以与下一个产品里程碑 v0.2 注意力收件箱并行推进。
 
 ## 2. 总体架构
 
@@ -521,61 +522,130 @@ v0.1 的协作是**异步的**：worker 通过 `TASKS.md`、`contracts/`、`RFC/
 
 ## 8. 路线图
 
-### v0.1 — 可运行的双 Worker CFD Demo
+方向是**注意力治理优先**。执行层已经存在：Pi worker、隔离工作树、scope 强制、
+三态门禁和报告。剩余工作是控制面：决定什么值得占用人的注意力，以及什么工作被授权。
 
-- `platform/` + `domains/cfd/` + `examples/cfd-mini`；
-- 单 Worker Spatial S1 验证通过；
-- 双 Worker Spatial S1 + Temporal T1；
-- G0–G4 门禁；
-- commit/report/repro；
-- 人工审批后合并 main。
+分层吸收 dsh-superagent；不把 DSH 作为运行时。每个阶段独立交付，并保持前一阶段可用。
 
-### v0.1.1 — 硬化
+### v0.1 — 手动任务执行层（已完成）
 
-- `preflight.sh`、`guard.ts`、`pre-push`；
-- `sync.sh`；
-- `GATE_MODE` 三态；
-- scope 覆盖删除/重命名/未跟踪；
-- 平台脚本测试。
+- Pi worker 在独立工作树和会话中运行；scope、门禁、报告、repro 已打通。
+- OneFLOW target 处于 audit 模式；两个只读审计已完成。
+- 平台和 target pack；48 项 smoke 检查和 27 项 harness 检查。
 
-### v0.2 — 任务引擎与协作
+局限：仍由人决定什么进入注意力；没有 Source、Mandate、Ticket、Outbox 或注意力视图。
 
-- TypeScript `platform/`（保留 bash 脚本为兼容层）；
-- SQLite：`projects/tasks/assignments/agents/events/messages/approvals/artifacts`；
-- Task 状态机：`proposed → authorized → ready → running → blocked/review/rework/verified/completed`；
-- 结构化消息：`proposal/objection/ack/decision/blocked/review_request/verification_result`；
-- RFC 状态与 contract version；
-- 审批队列；
-- 幂等执行、失败恢复、外部副作用去重。
+### v0.2 — 注意力收件箱（下一步）
 
-**验收：** 重启协调服务后能恢复未完成任务，并安全决定继续/重试/等待人工。
+目标：在增加自主性之前，先降低注意力成本。
 
-### v0.3 — 多项目
+- `agentlab inbox`：将条目分类为 `pending`、`review`、`fyi`。
+- 条目来源：
+  - `reports/*.md` 中 `status: need_decision`；
+  - `RFC/*.md` 中 `Status: proposed`；
+  - gate 的 `FAIL` 或 `UNVERIFIED`；
+  - worker 失败和中断的运行。
+- `agentlab decide <id>`：记录决定并回写到任务板。
+- 注意力策略：按类型选择 `never`、`digest` 或 `immediate`；限制每个任务的问题数量。
 
-- Workspace → Project → Repository；
-- OneFLOW / KylinFlow 两个独立仓库；
-- 共享 Agent Profile，独立 Assignment；
-- 凭据与写入权限按项目隔离；
-- 统一状态汇总。
+验收：一条命令只显示需要人的内容；分类确定性；不调用模型；不新增 Source 或自主行动。
 
-### v0.4 — 有边界自主研发
+### v0.3 — Mandate-lite 与 Ticket-lite
 
-- Campaign：长期目标、跨项目；
-- 权限继承：`Task Permissions ⊆ Campaign Permissions`；
-- 预算：workers、model budget、GPU hours；
-- Policy Engine 用确定性规则，LLM 只建议；
-- 高风险动作人工审批。
+目标：让授权显式，但不引入完整 dsh 领域模型。
 
-### v0.5 — AI4S Domain Pack
+- 任务升级为 ticket，包含 `source`、`sender`、`strength`（`explicit`/`inferred`）、
+  `rule`、`policy_version`、`scope`、`status` 和 `assignments`。
+- 计算 policy version hash；结束的 ticket 恢复前重新校验。
+- Ticket 生命周期：`proposed → authorized → running → review/blocked → ended`；
+  恢复和停止是显式命令。
+- scope 和 gate 仍是强制层。
 
-- `manifest.yaml` 标准化；
-- 第二个领域（分子动力学 / AI4S 推理 / 生物信息学）；
-- 平台内核不改即可接入；
-- 如果必须改 `platform/`，记录抽象缺陷。
+验收：每个 ticket 记录其被允许的原因；恢复时重新校验 mandate；ticket 不能扩大自身 scope。
 
----
+### v0.4 — Source 与 Trigger（先接 GitHub）
+
+目标：让工作从事件流进入，同时不失去控制。
+
+- 第一个 Source：GitHub notifications（只读接入）。
+- Trigger 去重和 Thread 分组；保存来源 payload。
+- 准入从 `observe` 模式开始：事件成为 Inbox 中的候选，不直接创建 ticket。
+  人批准后才开始工作。
+- `agentlab source` 配置和健康状态。
+
+验收：一条 GitHub mention 生成一个候选，包含 sender、strength 和 policy version；
+重复事件被忽略；不自动创建 ticket。
+
+### v0.5 — Outbox 与 Channel
+
+目标：让对外通信持久且幂等。
+
+- Outbox：先写后发、退避重试、receipt。
+- 第一个 Channel：GitHub 评论/回复。
+- 不自动合并；回复只限于 ticket 的来源 thread。
+
+验收：回复只发送一次；重试不产生重复评论；发送失败在 `status` 中可见。
+
+### v0.6 — Ticket 执行语义对齐
+
+目标：在 solo 场景重要的地方对齐 dsh-superagent 的执行语义。
+
+- 每个 ticket 一个 session 和工作区，而不是每个 workstream。
+- Subscription 和 follow-up：ticket thread 上的人消息可以恢复它。
+- 停止、重试、重启和 policy revalidation。
+- 后台工作和长时间任务限制。
+
+验收：ticket 在重启后仍存在；follow-up 能恢复；被停止的 ticket 不接收自动输入。
+
+### v0.7 — 多 target 与注意力视图
+
+目标：管理多个仓库而不放大注意力。
+
+- 一个 workspace 下多个 target。
+- 跨 target 的统一 Inbox，按 target 和注意力类型分组。
+- 可选的终端或 Web 注意力视图；不做完整活动面板。
+
+验收：两个 target 共用一个 Inbox；target A 的 worker 不能写 target B。
+
+### v0.8 — 有边界自主
+
+目标：只有注意力和授权层被证明后，才允许主动工作。
+
+- Campaign：跨 ticket 的长期目标。
+- 预算：workers、模型成本、GPU hours。
+- Task 权限是 campaign 权限的子集。
+- 只对 observe 模式精确度已被测量并经人接受的规则开放 auto-accept。
+- 高风险动作仍需要人工批准。
+
+验收：预算被强制执行；auto-accept 仅限白名单规则；每个决定可审计。
+
+## 8A. 从 dsh-superagent 吸收什么
+
+dsh-superagent 是控制面的参考实现。复用其概念和部分 core 代码（MIT），不把 DSH 作为运行时。
+
+| dsh-superagent | agentlab 阶段 | 复用 | 不复用 |
+|---|---|---|---|
+| 注意力哲学（`docs/000`） | 全部 | 只在被请求或规则允许时行动；只在人必须行动时说话；一次一个问题；诚实报告 | — |
+| 领域模型（`docs/001`） | v0.3、v0.6 | Trigger、Thread、Ticket、Mandate、Subscription、Assignment | solo 场景不需要的完整多用户准入模型 |
+| 执行模型（`docs/003`） | v0.6 | 每 ticket session/工作区、恢复、停止、重新校验 | DSH presets、DSH job/subagent 服务 |
+| `src/core` | v0.3、v0.6 | 领域类型和纯规则 | DSH 专属胶水 |
+| `src/policy.ts` | v0.3 | Gate、policy version、revalidation | 原样照搬多用户 allowed list |
+| Outbox / Effects 模式 | v0.5 | 先写后发、receipt、重试、幂等 | DSH channel 实现 |
+| 面板 / 注意力路由 | v0.2、v0.7 | 按“需要人”排序；隐藏健康状态 | DSH Web 客户端 |
+| DSH executor 和 presets | — | — | 不移植 |
+| DSH Source 插件 | v0.4 | 事件形状和去重思路 | 不依赖 DSH 插件 |
+
+规则：
+
+- `platform/`、`domains/`、`targets/` 不引入 DSH 类型。
+- 只复用不依赖 DSH 的代码；其他概念重新实现。
+- 复制代码时保留 MIT 版权声明。
+- 不把 DSH 加入平台依赖。
+- 如果某个阶段离开 DSH 无法交付，停止并记录原因；不得静默耦合两套运行时。
 
 ## 9. Sprint 计划
+
+> Sprint 0–4 记录原始 v0.1 实施。未来工作以第 8 节路线图为准。
 
 ### Sprint 0：审查与地基（1–2 天）
 
@@ -744,7 +814,8 @@ Next Tasks
 4. 能恢复中断的长期任务；
 5. 能管理多个独立科研仓库；
 6. 能在有限预算和明确授权下推进研发；
-7. 能通过 Domain Pack 扩展到其他 AI4S 领域。
+7. 能通过 Domain Pack 扩展到其他 AI4S 领域；
+8. 每天占用人的注意力是有界、可见的，且只用于决策或可使用的结果。
 
 **实施策略：**
 
