@@ -5,7 +5,8 @@
 A bounded multi-agent development system built on Pi. The platform is generic;
 CFD is the first domain and OneFLOW is the first target.
 
-Status: **v0.1 scaffold + v0.2 Attention Inbox + v0.3 Ticket Ledger + v0.4 GitHub Source (beta)**. The platform scripts are
+Status: **v0.1 scaffold + v0.2 Attention Inbox + v0.3 Ticket Ledger + v0.4 GitHub Source (beta)**.
+Short-term work is tracked in [`docs/living-todo.md`](docs/living-todo.md). The platform scripts are
 Bash and run on the system Bash 3.2 shipped with macOS. macOS, Linux, WSL, and Windows Git Bash are
 supported; native PowerShell is not. See
 [`docs/platform-support.md`](docs/platform-support.md).
@@ -45,6 +46,7 @@ language of the repository they belong to.
 | [`platform/docs/domain-pack-spec.md`](platform/docs/domain-pack-spec.md) | Humans | Domain pack specification |
 | [`platform/docs/governance.md`](platform/docs/governance.md) | Humans | Authorization model and current enforcement |
 | [`platform/docs/verification.md`](platform/docs/verification.md) | Humans | Gate layers and exit codes |
+| [`docs/living-todo.md`](docs/living-todo.md) | Humans | Short-term handoff: now, next, open decisions |
 | [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) | Humans | Living roadmap and design record |
 
 ### Worked example target

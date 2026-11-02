@@ -22,6 +22,7 @@ worker 作为数据读取的运行文件不做双语复制：
 
 | 文档 | 用途 |
 |---|---|
+| [Living TODO](living-todo.zh-CN.md) | 短期交接：现在、下一步、待决问题 |
 | [快速开始](quickstart.zh-CN.md) | 五分钟完成第一次 worker 运行，使用内置 validation target |
 | [注意力演示](../scripts/demo-attention.sh) | 一条命令：candidate -> inbox -> 批准 -> authorized ticket；不调用模型、不联网 |
 | [工作流](workflow.zh-CN.md) | 任意目标仓库的完整流程：审计、任务、scope、门禁、集成 |

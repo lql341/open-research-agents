@@ -526,6 +526,7 @@ v0.1 的协作是**异步的**：worker 通过 `TASKS.md`、`contracts/`、`RFC/
 三态门禁和报告。剩余工作是控制面：决定什么值得占用人的注意力，以及什么工作被授权。
 
 分层吸收 dsh-superagent；不把 DSH 作为运行时。每个阶段独立交付，并保持前一阶段可用。
+短期交接见 [`docs/living-todo.zh-CN.md`](docs/living-todo.zh-CN.md)。
 
 ### v0.1 — 手动任务执行层（已完成）
 
@@ -591,7 +592,24 @@ proposed 和 stale ticket 会出现在收件箱。参见 [`docs/usage.zh-CN.md`]
 当前实现：`agentlab source github poll/status`、`.agentlab/candidates/`、
 `.agentlab/sources/github.json`。参见 [`docs/usage.zh-CN.md`](docs/usage.zh-CN.md)。
 
-### v0.5 — Outbox 与 Channel（下一步）
+### v0.4.1 — Source 与收件箱硬化（下一步）
+
+目标：在增加对外通信之前，让注意力闭环达到可日常使用的可靠度。
+
+- Source 分页与限流：超过 100 条通知、HTTP 403/429、部分失败；保留上一次成功轮询状态。
+- 候选详情：尽可能解析 actor，保留 thread/subject 标识，避免轻微更新产生新候选。
+- Source 健康：在 `sources/github.json` 记录最近错误、连续失败次数和上次成功轮询；
+  在 `source status` 中显示。
+- 收件箱过滤：`--category`、`--since`，JSON 输出包含 decision 和 ticket id；`fyi` 默认隐藏。
+- 决策审计：只读的 `agentlab decisions` 视图，读取 `.agentlab/decisions/`。
+- 测试：分页、429、候选更新、decision 列表。
+
+验收：连续两次轮询不产生重复候选；限流轮询保留上次状态并报告错误；inbox 过滤结果与
+JSON 一致。
+
+当前短期工作见 [`docs/living-todo.zh-CN.md`](docs/living-todo.zh-CN.md)。
+
+### v0.5 — Outbox 与 Channel
 
 目标：让对外通信持久且幂等。
 

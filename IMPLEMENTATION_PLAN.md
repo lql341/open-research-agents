@@ -533,7 +533,8 @@ and a report. The remaining work is the control plane that decides what deserves
 human attention and what work is authorized.
 
 Absorb dsh-superagent in layers. Do not adopt DSH as the runtime. Each phase
-ships independently and leaves the previous one usable.
+ships independently and leaves the previous one usable. Short-term handoff:
+[`docs/living-todo.md`](docs/living-todo.md).
 
 ### v0.1 — manual task harness (done)
 
@@ -610,7 +611,29 @@ Current implementation: `agentlab source github poll/status`,
 `.agentlab/candidates/`, `.agentlab/sources/github.json`. See
 [`docs/usage.md`](docs/usage.md).
 
-### v0.5 — Outbox and Channel (next)
+### v0.4.1 — Source and inbox hardening (next)
+
+Goal: make the attention loop reliable enough for daily use before adding
+outbound communication.
+
+- Source pagination and rate-limit handling: more than 100 notifications, HTTP
+  403/429, and partial failure; preserve the last successful poll.
+- Candidate detail: resolve the actor when possible, keep thread/subject
+  identifiers, and avoid a new candidate for a trivial update.
+- Source health: last error, consecutive failures, and last successful poll in
+  `sources/github.json`; show it in `source status`.
+- Inbox filters: `--category`, `--since`, and JSON output including decisions and
+  ticket ids; keep `fyi` hidden by default.
+- Decision audit: a read-only `agentlab decisions` view over
+  `.agentlab/decisions/`.
+- Tests: pagination, 429, candidate update, decision listing.
+
+Acceptance: two consecutive polls never duplicate a candidate; a rate-limited poll
+preserves the previous state and reports an error; inbox filters match `--json`.
+
+Current short-term work is tracked in [`docs/living-todo.md`](docs/living-todo.md).
+
+### v0.5 — Outbox and Channel
 
 Goal: make external communication durable and idempotent.
 

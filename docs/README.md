@@ -24,6 +24,7 @@ They are configuration and evidence, not documentation pages.
 
 | Document | Purpose |
 |---|---|
+| [Living TODO](living-todo.md) | Short-term handoff: now, next, open decisions |
 | [Quickstart](quickstart.md) | First successful worker run in five minutes, using the built-in validation target |
 | [Attention demo](../scripts/demo-attention.sh) | One command: candidate -> inbox -> approval -> authorized ticket; no model or network |
 | [Workflow](workflow.md) | Full process for any target repository: audit, task, scope, gate, integration |

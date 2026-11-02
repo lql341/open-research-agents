@@ -5,7 +5,8 @@
 一个构建在 Pi 之上的有边界多智能体开发系统。平台本身是通用的；CFD 是第一个
 domain，OneFLOW 是第一个完整示例。
 
-状态：**v0.1 scaffold + v0.2 注意力收件箱 + v0.3 Ticket 账本 + v0.4 GitHub Source（beta）**。平台脚本使用 Bash，兼容 macOS
+状态：**v0.1 scaffold + v0.2 注意力收件箱 + v0.3 Ticket 账本 + v0.4 GitHub Source（beta）**。
+短期工作见 [`docs/living-todo.zh-CN.md`](docs/living-todo.zh-CN.md)。平台脚本使用 Bash，兼容 macOS
 自带的 3.2 版本。
 支持 macOS、Linux、WSL 和 Windows Git Bash；不支持原生 PowerShell。详见
 [`docs/platform-support.zh-CN.md`](docs/platform-support.zh-CN.md)。
@@ -42,6 +43,7 @@ tests/fixtures/         平台 smoke test 使用的小型夹具
 | [`platform/docs/domain-pack-spec.zh-CN.md`](platform/docs/domain-pack-spec.zh-CN.md) | 人 | domain pack 规范 |
 | [`platform/docs/governance.zh-CN.md`](platform/docs/governance.zh-CN.md) | 人 | 授权模型与当前强制程度 |
 | [`platform/docs/verification.zh-CN.md`](platform/docs/verification.zh-CN.md) | 人 | 门禁分层与退出码 |
+| [`docs/living-todo.zh-CN.md`](docs/living-todo.zh-CN.md) | 人 | 短期交接：现在、下一步、待决问题 |
 | [`IMPLEMENTATION_PLAN.zh-CN.md`](IMPLEMENTATION_PLAN.zh-CN.md) | 人 | 持续更新的路线图与设计记录 |
 
 ### 完整示例 target
