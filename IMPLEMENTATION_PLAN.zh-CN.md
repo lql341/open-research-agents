@@ -531,7 +531,7 @@ v0.1 的协作是**异步的**：worker 通过 `TASKS.md`、`contracts/`、`RFC/
 
 - Pi worker 在独立工作树和会话中运行；scope、门禁、报告、repro 已打通。
 - OneFLOW target 处于 audit 模式；两个只读审计已完成。
-- 平台和 target pack；83 项 smoke 检查和 27 项 harness 检查。
+- 平台和 target pack；88 项 smoke 检查和 27 项 harness 检查。
 
 局限：仍由人决定什么进入注意力；没有 Source、Mandate、Ticket、Outbox 或注意力视图。
 

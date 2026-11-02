@@ -539,7 +539,7 @@ ships independently and leaves the previous one usable.
 
 - Pi worker in a worktree, independent session, scope, gate, report, repro.
 - OneFLOW target in audit mode; two read-only audits completed.
-- Platform and target packs; 83 smoke checks and 27 harness checks.
+- Platform and target packs; 88 smoke checks and 27 harness checks.
 
 Limitation: the human still decides what enters attention. There is no Source,
 Mandate, Ticket, Outbox, or attention view.

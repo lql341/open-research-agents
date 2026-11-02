@@ -87,6 +87,13 @@ python3 -c "import json,sys; json.load(open('/tmp/agentlab-status.json'))" && pa
 
 if "$ROOT/bin/agentlab" doctor >/tmp/agentlab-doctor.log 2>&1; then pass=$((pass+1)); else fail=$((fail+1)); echo "FAILED: agentlab doctor"; cat /tmp/agentlab-doctor.log; fi
 
+if "$ROOT/bin/agentlab" --help >/tmp/agentlab-help.txt 2>&1; then pass=$((pass+1)); else fail=$((fail+1)); echo "FAILED: agentlab --help"; fi
+grep -q "Target repository" /tmp/agentlab-help.txt && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: help does not explain target resolution"; }
+grep -q "current git" /tmp/agentlab-help.txt && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: help does not mention current git"; }
+
+if "$ROOT/bin/agentlab" ticket --help >/tmp/agentlab-ticket-help.txt 2>&1; then pass=$((pass+1)); else fail=$((fail+1)); echo "FAILED: ticket --help"; fi
+grep -q "new" /tmp/agentlab-ticket-help.txt && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: ticket help missing commands"; }
+
 # The CLI must pass a configured Pi profile only to its children.
 TMP_PROFILE="$(mktemp -d)"
 cat > "$TMP/agentlab-cli.toml" <<TOML

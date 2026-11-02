@@ -111,11 +111,24 @@ agentlab - run Pi-based collaborative workstreams in a target repository
   agentlab pi <workstream>                    open interactive Pi in that workstream's worktree
   agentlab clean <workstream...>              remove worker worktrees, keep branches and logs
 
+Target repository:
+  Every command except `install` resolves the target from the current git
+  repository. Run `cd <repo>` before status, inbox, ticket, source, run, gate,
+  integrate, or pi. `agentlab install <domain> <target> <repo>` takes an explicit
+  path. `--repo` on `agentlab source github` filters GitHub notifications, not the
+  local target.
+
+Per-command help:
+  agentlab ticket --help
+  agentlab source github poll --help
+  agentlab inbox --help
+
 Environment:
   AGENTLAB_CONFIG   config file (default: ${XDG_CONFIG_HOME:-$HOME/.config}/agentlab/config.toml)
   PI_BIN            Pi executable (default: pi)
   PI_PROFILE        Pi agent dir for workers; exported as PI_CODING_AGENT_DIR
   PI_ARGS           extra Pi arguments for workers
+  WT_ROOT           worker worktree root (default: <repo>-wt next to the target)
 USAGE
 }
 
