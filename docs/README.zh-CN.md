@@ -30,7 +30,7 @@ worker 作为数据读取的运行文件不做双语复制：
 
 | 文档 | 用途 |
 |---|---|
-| [日常用法](usage.zh-CN.md) | status、run、gate、integrate、pi、clean |
+| [日常用法](usage.zh-CN.md) | status、inbox、decide、run、gate、integrate、pi、clean |
 | [手动安装](install-manual.zh-CN.md) | 分步安装、验证、排错、卸载 |
 | [Agent 安装协议](install-agent.zh-CN.md) | 供 coding agent 执行的可执行协议 |
 | [平台支持](platform-support.zh-CN.md) | macOS、Linux、WSL、Windows Git Bash；不支持原生 PowerShell |

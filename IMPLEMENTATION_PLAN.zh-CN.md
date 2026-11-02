@@ -16,14 +16,14 @@
 **首个领域：** CFD  
 **首选 Agent Runtime：** Pi  
 **v0.1 实现语言：** Bash + Markdown（可执行规范）  
-**v0.2 起实现语言：** TypeScript（编排器/任务引擎）  
+**编排实现：** Bash + Markdown；TypeScript 任务引擎尚未排期  
 **长期目标：** 面向科学计算与 AI4S 的开源、可验证、人类治理的多智能体研发平台
 
 ---
 
 ## 0. 摘要
 
-> **v0.1 = agent-lab 的平台/领域分层 + starter 的 CFD 契约与任务 + 一个真实可编译的 `cfd-mini` 目标仓库 + 更硬的 gate。先单 worker，后双 worker；TypeScript 平台推迟到 v0.2。**
+> **v0.1 = agent-lab 的平台/领域分层 + starter 的 CFD 契约与任务 + 一个真实可编译的 `cfd-mini` 目标仓库 + 更硬的 gate。先单 worker，后双 worker；TypeScript 任务引擎尚未排期。**
 
 ---
 
@@ -95,7 +95,7 @@ v0.1 不做：
 - worker 只允许按现有模式加测试：一个测试目标列出它需要的生产源，不新建测试入口、
   不改构建系统。
 - 下一步：人工确认两个不重叠的代码 workstream，切 `AGENTLAB_MODE=worker`。
-  该执行工作可以与下一个产品里程碑 v0.2 注意力收件箱并行推进。
+  该执行工作可以与 v0.2 注意力收件箱（已实现）和 v0.3 Mandate-lite 并行推进。
 
 ## 2. 总体架构
 
@@ -284,7 +284,7 @@ public:
 
 - `Field` 的 `like/copy/axpy/norm2` 是 v0.1 必需，temporal 的 RK 不能自己发明；
 - `Mesh` 只读；v0.1 结构化 1D，2D/3D 方法可先返回 1；
-- `Comm` 串行时 no-op；MPI 实现留到 v0.2；
+- `Comm` 串行时 no-op；MPI 实现留到后续阶段；
 - 不允许 worker 修改 `core/`。
 
 ### 4.3 模块接口（修正版）
@@ -531,11 +531,11 @@ v0.1 的协作是**异步的**：worker 通过 `TASKS.md`、`contracts/`、`RFC/
 
 - Pi worker 在独立工作树和会话中运行；scope、门禁、报告、repro 已打通。
 - OneFLOW target 处于 audit 模式；两个只读审计已完成。
-- 平台和 target pack；48 项 smoke 检查和 27 项 harness 检查。
+- 平台和 target pack；58 项 smoke 检查和 27 项 harness 检查。
 
 局限：仍由人决定什么进入注意力；没有 Source、Mandate、Ticket、Outbox 或注意力视图。
 
-### v0.2 — 注意力收件箱（下一步）
+### v0.2 — 注意力收件箱（已实现，beta）
 
 目标：在增加自主性之前，先降低注意力成本。
 
@@ -550,7 +550,10 @@ v0.1 的协作是**异步的**：worker 通过 `TASKS.md`、`contracts/`、`RFC/
 
 验收：一条命令只显示需要人的内容；分类确定性；不调用模型；不新增 Source 或自主行动。
 
-### v0.3 — Mandate-lite 与 Ticket-lite
+当前实现：`agentlab inbox` 和 `agentlab decide`；策略键位于 `.agentlab/target.env`。
+参见 [`docs/usage.zh-CN.md`](docs/usage.zh-CN.md)。
+
+### v0.3 — Mandate-lite 与 Ticket-lite（下一步）
 
 目标：让授权显式，但不引入完整 dsh 领域模型。
 
@@ -735,7 +738,7 @@ dsh-superagent 是控制面的参考实现。复用其概念和部分 core 代�
 | Agent 过度自信 | 数值门禁 + 人工 review；禁止“LLM 说通过” |
 | 平台/领域耦合 | domain pack spec；第二个领域检验 |
 | Pi 版本漂移 | pin 版本 + smoke test；只依赖公开 API |
-| 过度建设平台 | v0.1 只 bash；TS 推迟到 v0.2 |
+| 过度建设平台 | v0.1 只使用 Bash；TypeScript 任务引擎尚未排期 |
 
 ---
 
@@ -798,8 +801,8 @@ Next Tasks
 | 命令拦截 | 仅 AGENTS | 仅 AGENTS | **新增 guard + pre-push** |
 | Session 策略 | 未指定 | 未指定 | **显式 `--session-id`/`--no-session`** |
 | 可编译示例 | 无 | 无 | **新增 `examples/cfd-mini`** |
-| 平台语言 | bash | bash | **v0.1 bash；v0.2 TypeScript** |
-| 任务引擎 | 无 | 文档提到未实现 | **v0.2** |
+| 平台语言 | bash | bash | **v0.1 bash；TypeScript 任务引擎尚未排期** |
+| 任务引擎 | 无 | 文档提到未实现 | **尚未排期；见第 8 节** |
 | 治理文档 | 简单 | `governance.md` 诚实列出未实现 | **保留并映射到 v0.2+** |
 
 ---

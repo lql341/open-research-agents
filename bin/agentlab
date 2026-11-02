@@ -96,6 +96,8 @@ agentlab - run Pi-based collaborative workstreams in a target repository
   agentlab update [--no-pull]                 update the tool, then re-apply the pack to the current repo
   agentlab uninstall [--force] [--yes]        remove .agentlab from the current repo
   agentlab status [--json]                    workstream, report, gate and pending decisions
+  agentlab inbox [--all] [--json]             attention inbox: only items that need a human
+  agentlab decide <id> [--ack|--approve|--reject] [--note TEXT]
   agentlab preflight <workstream>
   agentlab run <workstream> [extra...]        start a worker (mode comes from .agentlab/target.env)
       --detach                                run it in the background; follow with tail/status
@@ -167,6 +169,20 @@ case "$cmd" in
     [ -n "$PYTHON" ] || { echo "agentlab: python3 (or python) is required for 'status'" >&2; exit 2; }
     with_profile
     exec "$PYTHON" "$AGENTLAB/scripts/status.py" "$@"
+    ;;
+
+  inbox)
+    has_agentlab
+    [ -n "$PYTHON" ] || { echo "agentlab: python3 (or python) is required for 'inbox'" >&2; exit 2; }
+    with_profile
+    exec "$PYTHON" "$AGENTLAB/scripts/inbox.py" inbox "$@"
+    ;;
+
+  decide)
+    has_agentlab
+    [ -n "$PYTHON" ] || { echo "agentlab: python3 (or python) is required for 'decide'" >&2; exit 2; }
+    with_profile
+    exec "$PYTHON" "$AGENTLAB/scripts/inbox.py" decide "$@"
     ;;
 
   preflight)

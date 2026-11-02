@@ -32,7 +32,7 @@ They are configuration and evidence, not documentation pages.
 
 | Document | Purpose |
 |---|---|
-| [Usage](usage.md) | Daily commands: status, run, gate, integrate, pi, clean |
+| [Usage](usage.md) | Daily commands: status, inbox, decide, run, gate, integrate, pi |
 | [Installation (manual)](install-manual.md) | Step-by-step installation, verification, troubleshooting, removal |
 | [Installation (agent protocol)](install-agent.md) | Executable protocol for a coding agent |
 | [Platform support](platform-support.md) | macOS, Linux, WSL, Windows Git Bash; native PowerShell is not supported |

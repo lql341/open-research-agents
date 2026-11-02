@@ -206,6 +206,60 @@ grep -q "working tree is dirty" /tmp/agentlab-integrate-dirty.log && pass=$((pas
 grep -q -- "--worktree" /tmp/agentlab-integrate-dirty.log && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: no worktree hint"; }
 rm -f "$SESS_REPO/untracked.txt"
 
+echo "== attention inbox"
+INBOX="$TMP/inbox"
+INBOX_WT="$TMP/inbox-wt"
+mkdir -p "$INBOX" "$INBOX_WT/logs"
+cp -R "$ROOT/tests/fixtures/mini-target/." "$INBOX/"
+( cd "$INBOX" && git init -q -b main && git add -A && git commit -q -m init ) >/dev/null
+cat > "$INBOX/.agentlab/reports/spatial.md" <<'REPORT'
+# Report: spatial
+
+status: need_decision
+updated: 2026-11-01
+commit: abc1234
+REPORT
+cat > "$INBOX/.agentlab/RFC/spatial-test.md" <<'RFC'
+# RFC: test
+
+Status: proposed | approved | rejected (only a human changes this)
+RFC
+cat > "$INBOX/.agentlab/repro/spatial-20261101T000000Z.json" <<'GATE'
+{"gate_mode":"worker","gate_status":"unverified","git_commit":"abc1234","time_utc":"2026-11-01T00:00:00Z"}
+GATE
+printf 'preflight: ok\nOpenAI API error (400): model_not_found\n' > "$INBOX_WT/logs/spatial-20261101T000000Z.log"
+
+set +e
+( cd "$INBOX" && WT_ROOT="$INBOX_WT" "$ROOT/bin/agentlab" inbox --json >/tmp/agentlab-inbox.json 2>/tmp/agentlab-inbox.err )
+rc=$?
+set -e
+[ $rc -eq 0 ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: inbox --json"; cat /tmp/agentlab-inbox.err; }
+python3 - <<'PYCHECK' && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: inbox categories"; }
+import json
+d=json.load(open('/tmp/agentlab-inbox.json'))
+items={i['id']:i for i in d['items']}
+assert items['report:spatial']['category']=='pending'
+assert items['rfc:spatial-test']['category']=='pending'
+assert items['worker:spatial:spatial-20261101T000000Z.log']['category']=='pending'
+assert items['gate:spatial:spatial-20261101T000000Z.json']['category']=='review'
+PYCHECK
+
+( cd "$INBOX" && WT_ROOT="$INBOX_WT" "$ROOT/bin/agentlab" inbox >/tmp/agentlab-inbox.txt 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: inbox text"; }
+grep -q "pending (3)" /tmp/agentlab-inbox.txt && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: inbox pending count"; }
+grep -q "review (1)" /tmp/agentlab-inbox.txt && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: inbox review count"; }
+
+( cd "$INBOX" && WT_ROOT="$INBOX_WT" "$ROOT/bin/agentlab" decide report:spatial --ack --note "reviewed" >/tmp/agentlab-decide.txt 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: decide report"; }
+( cd "$INBOX" && WT_ROOT="$INBOX_WT" "$ROOT/bin/agentlab" decide rfc:spatial-test --approve >/tmp/agentlab-decide-rfc.txt 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: decide rfc"; }
+grep -qi "Status: approved" "$INBOX/.agentlab/RFC/spatial-test.md" && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: RFC status not updated"; }
+( cd "$INBOX" && WT_ROOT="$INBOX_WT" "$ROOT/bin/agentlab" inbox --json >/tmp/agentlab-inbox-after.json 2>&1 ) && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: inbox after decide"; }
+python3 - <<'PYCHECK2' && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAILED: decided items still visible"; }
+import json
+ids={i['id'] for i in json.load(open('/tmp/agentlab-inbox-after.json'))['items']}
+assert 'report:spatial' not in ids
+assert 'rfc:spatial-test' not in ids
+PYCHECK2
+rm -rf "$INBOX" "$INBOX_WT"
+
 echo "----"
 echo "smoke: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

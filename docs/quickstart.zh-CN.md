@@ -20,7 +20,7 @@
 
 ```bash
 cd ~/open-research-agents
-bash tests/platform_smoke.sh        # 期望：48 passed, 0 failed
+bash tests/platform_smoke.sh        # 期望：58 passed, 0 failed
 bash scripts/validate-harness.sh    # 期望：27 passed, 0 failed
 ```
 
@@ -131,6 +131,8 @@ GATE PASS. Review the integration branch, then merge main after human approval.
 这时改动在 `integration` 分支上，等你审。`agentlab` 不会替你合并 base 分支。
 
 ---
+
+此时 `agentlab inbox` 会把已完成的报告显示为 review 条目，并过滤掉门禁噪音。
 
 ## 5. 检查改动内容
 

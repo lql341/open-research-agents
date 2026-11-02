@@ -21,7 +21,7 @@ Assumes:
 
 ```bash
 cd ~/open-research-agents
-bash tests/platform_smoke.sh        # expect: 48 passed, 0 failed
+bash tests/platform_smoke.sh        # expect: 58 passed, 0 failed
 bash scripts/validate-harness.sh    # expect: 27 passed, 0 failed
 ```
 
@@ -135,6 +135,9 @@ At this point, the change is on the `integration` branch, waiting for you.
 `agentlab` does not merge the base branch.
 
 ---
+
+`agentlab inbox` now shows the completed report as a review item, without the
+gate noise.
 
 ## 5. Look at what happened
 

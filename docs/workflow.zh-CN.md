@@ -188,6 +188,21 @@ agentlab preflight <ws>
 
 ---
 
+### 4.7 注意力收件箱
+
+收件箱是 v0.2 的注意力层。它不启动工作，只决定什么进入人的视野。
+
+```bash
+agentlab inbox              # 仅 pending 和 review
+agentlab inbox --all        # 包含 fyi
+agentlab inbox --json
+agentlab decide <id> --ack|--approve|--reject --note "..."
+```
+
+条目来自 `reports/*.md`、`RFC/*.md`、每个 workstream 最新的 gate，以及最新的 worker
+日志。分类通过 `.agentlab/target.env` 中的 `ATTENTION_*` 配置。决定只对做出决定时的
+内容生效；报告、RFC、gate 或日志变化后会产生新条目。
+
 ## 5. 运行、审查、集成
 
 ```bash
@@ -224,8 +239,8 @@ git merge --no-ff integration
 
 - `agentlab gate <ws>` **默认在 worker 工作树中运行**。主检出可能还是桩，在在主检出中运行会得到
   误导性的 `UNVERIFIED`。只有确实要针对当前检出运行时才使用 `--here`。
-- `agentlab integrate` 会拒绝脏工作区。唯一例外是未跟踪的 `.agentlab/repro/*.json`，
-  它们会随 integration 一起提交。
+- `agentlab integrate` 会拒绝脏工作区。唯一例外是未跟踪的 `.agentlab/repro/*.json`
+  和 `.agentlab/decisions/*.json`，它们会随 integration 一起提交。
 - `agentlab status` 里 `WORKTREE=repro` 表示只有门禁生成的记录没提交，没有源码改动。
 
 ---

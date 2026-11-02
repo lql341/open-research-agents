@@ -18,14 +18,14 @@
 **First domain:** CFD
 **Preferred agent runtime:** Pi
 **v0.1 implementation language:** Bash + Markdown (executable specification)
-**From v0.2:** TypeScript (orchestrator and task engine)
+**Orchestration:** Bash + Markdown; a TypeScript task engine is not yet scheduled
 **Long-term goal:** an open, verifiable, human-governed multi-agent research platform for scientific computing and AI4S
 
 ---
 
 ## 0. Summary
 
-> **v0.1 = the agent-lab platform/domain split + the starter's CFD contracts and tasks + a real compilable target repository + a stricter gate. Single worker first, then two workers; the TypeScript platform is deferred to v0.2.**
+> **v0.1 = the agent-lab platform/domain split + the starter's CFD contracts and tasks + a real compilable target repository + a stricter gate. Single worker first, then two workers; the TypeScript task engine is not yet scheduled.**
 
 ---
 
@@ -100,7 +100,7 @@ v0.1 does not include:
   production sources it needs; no new test entry point and no build-system change.
 - Next step: the human confirms two disjoint code workstreams and switches
   `AGENTLAB_MODE` to `worker`. This execution work can proceed in parallel with
-  the next product milestone, the v0.2 Attention Inbox.
+  the v0.2 Attention Inbox (implemented) and the v0.3 Mandate-lite work.
 
 ## 2. Overall architecture
 
@@ -289,7 +289,7 @@ Rules:
 
 - `Field::like/copy/axpy/norm2` are required in v0.1; temporal RK must not invent its own;
 - `Mesh` is read-only; for structured 1D, 2D/3D methods may return 1;
-- `Comm` is a no-op in serial mode; MPI implementation is deferred to v0.2;
+- `Comm` is a no-op in serial mode; MPI implementation is deferred to a later phase;
 - workers must not modify `core/`.
 
 ### 4.3 Module interfaces (corrected)
@@ -539,12 +539,12 @@ ships independently and leaves the previous one usable.
 
 - Pi worker in a worktree, independent session, scope, gate, report, repro.
 - OneFLOW target in audit mode; two read-only audits completed.
-- Platform and target packs; 48 smoke checks and 27 harness checks.
+- Platform and target packs; 58 smoke checks and 27 harness checks.
 
 Limitation: the human still decides what enters attention. There is no Source,
 Mandate, Ticket, Outbox, or attention view.
 
-### v0.2 — Attention Inbox (next)
+### v0.2 — Attention Inbox (implemented, beta)
 
 Goal: reduce attention cost before adding autonomy.
 
@@ -561,7 +561,10 @@ Goal: reduce attention cost before adding autonomy.
 Acceptance: one command shows only what needs a human; classification is
 deterministic; no model calls; no new Source or autonomous action.
 
-### v0.3 — Mandate-lite and Ticket-lite
+Current implementation: `agentlab inbox` and `agentlab decide`; policy keys are
+in `.agentlab/target.env`. See [`docs/usage.md`](docs/usage.md).
+
+### v0.3 — Mandate-lite and Ticket-lite (next)
 
 Goal: make authorization explicit without importing the full dsh domain.
 
@@ -759,7 +762,7 @@ Rules:
 | Agent overconfidence | numerical gate + human review; no "the LLM said it passed" |
 | Platform/domain coupling | domain pack spec; verify with a second domain |
 | Pi version drift | pin the version + smoke tests; depend only on public APIs |
-| Overbuilding the platform | v0.1 stays Bash; TypeScript is deferred to v0.2 |
+| Overbuilding the platform | v0.1 stays Bash; a TypeScript task engine is not yet scheduled |
 
 ---
 
@@ -822,8 +825,8 @@ Next Tasks
 | Command interception | AGENTS only | AGENTS only | **Add guard + pre-push** |
 | Session policy | Unspecified | Unspecified | **Explicit `--session-id`/`--no-session`** |
 | Compilable example | None | None | **Add `examples/cfd-mini`** |
-| Platform language | Bash | Bash | **v0.1 Bash; v0.2 TypeScript** |
-| Task engine | None | Documented as not implemented | **v0.2** |
+| Platform language | Bash | Bash | **v0.1 Bash; TypeScript task engine not yet scheduled** |
+| Task engine | None | Documented as not implemented | **Not yet scheduled; see Section 8** |
 | Governance documentation | Minimal | `governance.md` states what is not enforced | **Keep; map to v0.2+** |
 
 ---

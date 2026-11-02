@@ -49,6 +49,45 @@ agentlab integrate <ws...>       # merge and run the integration gate
 `agentlab` does not merge the base branch. Review the integration branch and
 merge it manually.
 
+## 3.1 Attention inbox (v0.2)
+
+The inbox answers one question: **what needs a human now?**
+
+```bash
+agentlab inbox                 # pending and review
+agentlab inbox --all           # include fyi
+agentlab inbox --json          # machine-readable
+agentlab decide <id> --ack     # acknowledge an item
+agentlab decide <id> --approve # approve an RFC
+agentlab decide <id> --reject  # reject an RFC
+agentlab decide <id> --note "reason for the decision"
+```
+
+Sources:
+
+- `reports/*.md` with `status: need_decision` or `status: blocked`;
+- `RFC/*.md` with `Status: proposed`;
+- the latest gate for each workstream with `FAIL` or `UNVERIFIED`;
+- the latest worker log with a recognizable failure.
+
+Categories and policy are configured in `.agentlab/target.env`:
+
+```sh
+ATTENTION_NEED_DECISION=pending   # pending | review | fyi | ignore
+ATTENTION_RFC=pending
+ATTENTION_BLOCKED=pending
+ATTENTION_GATE_FAIL=pending
+ATTENTION_GATE_UNVERIFIED=review
+ATTENTION_REPORT_READY=review
+ATTENTION_WORKER_FAILURE=pending
+```
+
+`pending` is shown first, then `review`; `fyi` is hidden unless `--all` is used.
+`agentlab decide` records the decision under `.agentlab/decisions/`. A decision
+applies only to the exact content it was made on; a changed report, RFC, gate, or
+log produces a new item. Approving or rejecting an RFC also changes its `Status`
+field.
+
 ## 4. Long runs and interruption
 
 A worker using `thinking=high` can take several minutes. Do not block the terminal:
@@ -119,11 +158,11 @@ agentlab gate <ws> --here
 ```
 
 `agentlab integrate` refuses a dirty base checkout. Untracked
-`.agentlab/repro/*.json` audit records are the only exception; they are committed
-with the integration.
+`.agentlab/repro/*.json` and `.agentlab/decisions/*.json` audit records are the
+only exception; they are committed with the integration.
 
 `agentlab status` shows `WORKTREE=repro` when the only uncommitted files are
-generated repro records. `clean` means nothing is uncommitted.
+generated repro or decision records. `clean` means nothing is uncommitted.
 
 ## 7. Session hygiene
 

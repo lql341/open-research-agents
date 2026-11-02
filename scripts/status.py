@@ -238,7 +238,10 @@ def main(argv: list[str]) -> int:
             lines = [line for line in git(wt, "status", "--porcelain").splitlines() if line.strip()]
             if not lines:
                 wt_state = "clean"
-            elif all(line.startswith("?? .agentlab/repro/") for line in lines):
+            elif all(
+                line.startswith("?? .agentlab/repro/") or line.startswith("?? .agentlab/decisions/")
+                for line in lines
+            ):
                 wt_state = "repro"
             else:
                 wt_state = "dirty"

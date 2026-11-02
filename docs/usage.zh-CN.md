@@ -46,6 +46,43 @@ agentlab integrate <ws...>       # 合并并运行集成门禁
 
 `agentlab` 不会合并 base 分支。需要人工审查 integration 分支后手动合并。
 
+## 3.1 注意力收件箱（v0.2）
+
+收件箱只回答一个问题：**现在什么需要人处理？**
+
+```bash
+agentlab inbox                 # pending 和 review
+agentlab inbox --all           # 包含 fyi
+agentlab inbox --json          # 机器可读
+agentlab decide <id> --ack     # 确认条目
+agentlab decide <id> --approve # 批准 RFC
+agentlab decide <id> --reject  # 拒绝 RFC
+agentlab decide <id> --note "决定理由"
+```
+
+条目来源：
+
+- `reports/*.md` 中 `status: need_decision` 或 `status: blocked`；
+- `RFC/*.md` 中 `Status: proposed`；
+- 每个 workstream 最新的 gate 为 `FAIL` 或 `UNVERIFIED`；
+- 最新的 worker 日志中存在可识别的失败。
+
+分类和策略在 `.agentlab/target.env` 中配置：
+
+```sh
+ATTENTION_NEED_DECISION=pending   # pending | review | fyi | ignore
+ATTENTION_RFC=pending
+ATTENTION_BLOCKED=pending
+ATTENTION_GATE_FAIL=pending
+ATTENTION_GATE_UNVERIFIED=review
+ATTENTION_REPORT_READY=review
+ATTENTION_WORKER_FAILURE=pending
+```
+
+`pending` 优先显示，其次是 `review`；`fyi` 默认隐藏，使用 `--all` 显示。
+`agentlab decide` 将决定记录在 `.agentlab/decisions/`。决定只对做出决定时的内容生效；
+报告、RFC、gate 或日志变化后会产生新条目。批准或拒绝 RFC 时，也会修改其 `Status` 字段。
+
 ## 4. 长时间运行与中断
 
 使用 `thinking=high` 的 worker 可能运行数分钟。不要占用终端：
@@ -113,9 +150,9 @@ agentlab gate <ws> --here
 ```
 
 `agentlab integrate` 会拒绝脏的 base 检出。未跟踪的 `.agentlab/repro/*.json`
-审计记录是唯一例外；它们会随 integration 一起提交。
+和 `.agentlab/decisions/*.json` 审计记录是唯一例外；它们会随 integration 一起提交。
 
-当唯一未提交的文件是生成的 repro 记录时，`agentlab status` 显示
+当唯一未提交的文件是生成的 repro 或 decision 记录时，`agentlab status` 显示
 `WORKTREE=repro`。`clean` 表示没有未提交内容。
 
 ## 7. 会话管理

@@ -199,6 +199,23 @@ agentlab preflight <ws>
 
 ---
 
+### 4.7 Attention inbox
+
+The inbox is the v0.2 attention layer. It does not start work; it decides what
+enters the human's view.
+
+```bash
+agentlab inbox              # pending and review only
+agentlab inbox --all        # include fyi
+agentlab inbox --json
+agentlab decide <id> --ack|--approve|--reject --note "..."
+```
+
+Items come from `reports/*.md`, `RFC/*.md`, the latest gate per workstream, and
+the latest worker log. Categories are configured in `.agentlab/target.env` with
+`ATTENTION_*` keys. A decision applies only to the content it was made on; a
+changed report, RFC, gate, or log creates a new item.
+
 ## 5. Run, review, integrate
 
 ```bash
@@ -237,7 +254,8 @@ Important:
   still hold the unimplemented stub, so gating it could produce a misleading
   `UNVERIFIED`. Use `--here` only when you mean the current checkout.
 - `agentlab integrate` refuses a dirty tree. Untracked `.agentlab/repro/*.json`
-  records are the only exception; they are committed with the integration.
+  and `.agentlab/decisions/*.json` records are the only exception; they are
+  committed with the integration.
 - `agentlab status` shows `WORKTREE=repro` when the only uncommitted files are
   gate records.
 

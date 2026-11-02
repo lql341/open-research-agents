@@ -93,6 +93,18 @@ worker 只能按现有模式新增测试：一个测试目标列出所需生产�
 4. 在本机验证 `BUILD_CMD`/`UNIT_CMD`。
 5. 在集成前注册一个真实验证算例。
 
+## 注意力收件箱
+
+```bash
+cd ~/OneFLOW
+agentlab inbox
+agentlab inbox --all
+agentlab inbox --json
+```
+
+收件箱读取报告、RFC、每个 workstream 最新的 gate 和最新的 worker 日志。分类由
+`.agentlab/target.env` 中的 `ATTENTION_*` 键配置；旧安装包即使没有这些键也会使用默认值。
+
 ## 分支规则
 
 - 当前本地检出使用 `BASE_REF=dev`。

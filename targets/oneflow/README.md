@@ -97,6 +97,19 @@ test entry point.
 4. Verify `BUILD_CMD`/`UNIT_CMD` in `target.env` against your machine.
 5. Register a real verification case before integration.
 
+## Attention inbox
+
+```bash
+cd ~/OneFLOW
+agentlab inbox
+agentlab inbox --all
+agentlab inbox --json
+```
+
+The inbox reads reports, RFCs, the latest gate per workstream, and the latest
+worker log. Categories are configured by `ATTENTION_*` keys in
+`.agentlab/target.env`; defaults work even for an older installed pack.
+
 ## Branch rules
 
 - `BASE_REF=dev` for this local checkout.
