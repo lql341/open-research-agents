@@ -590,7 +590,8 @@ revalidate/resume`; proposed and stale tickets appear in the inbox. See
 
 Goal: let work enter from an event stream without losing control.
 
-- One Source: GitHub notifications through the authenticated `gh` CLI (read-only).
+- One Source: GitHub notifications through the authenticated **agent account** wrapper
+  (`GITHUB_CLI`, for example `gh-agent`), not the human account. Read-only.
 - Candidates record repo, notification id, reason, subject type, title, URL,
   strength, and status. The notifications endpoint does not expose the actor, so
   `sender` is `unknown` until a later source adapter resolves it.

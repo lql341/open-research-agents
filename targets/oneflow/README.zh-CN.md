@@ -123,7 +123,8 @@ mode、target 或 base ref 变化后，`revalidate` 会将 ticket 标为 `stale`
 
 ## GitHub Source
 
-该 Source 使用已认证的 `gh` CLI，只读。它生成候选，不生成 ticket。
+该 Source 通过 `gh-agent` wrapper 使用 agent 账号（`lql341-agent`），不是真人账号。
+它只读，生成候选，不生成 ticket。
 
 ```bash
 cd ~/OneFLOW

@@ -143,7 +143,16 @@ agentlab source github poll --input tests/fixtures/github-notifications.json --r
 
 `--input` 读取已保存的通知列表，不调用 GitHub；平台测试和离线审查使用该方式。
 
-仓库默认取 `.agentlab/target.env` 中的 `GITHUB_REPOSITORY`，否则使用 `gh repo view`。
+仓库默认取 `.agentlab/target.env` 中的 `GITHUB_REPOSITORY`，否则使用
+`<GITHUB_CLI> repo view`。`GITHUB_CLI` 必须指向 **agent 账号 wrapper**，而不是真人账号。
+例如：
+
+```sh
+GITHUB_CLI=gh-agent
+GITHUB_REPOSITORY=lql341/OneFLOW
+```
+
+`agentlab source github status` 会显示账号身份，因此配置错成真人账号时可以直接看出来。
 轮询是只读的：不会把通知标记为已读。
 
 批准候选时必须指定 workstream：

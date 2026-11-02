@@ -153,7 +153,17 @@ agentlab source github poll --input tests/fixtures/github-notifications.json --r
 the platform tests and for offline review.
 
 The repository defaults to `GITHUB_REPOSITORY` in `.agentlab/target.env`, then to
-`gh repo view`. Polling is read-only: it does not mark notifications as read.
+`<GITHUB_CLI> repo view`. Set `GITHUB_CLI` to the **agent account wrapper**, not
+the human account. For example:
+
+```sh
+GITHUB_CLI=gh-agent
+GITHUB_REPOSITORY=lql341/OneFLOW
+```
+
+`agentlab source github status` reports the account identity, so a misconfigured
+human account is visible. Polling is read-only: it does not mark notifications as
+read.
 
 A candidate is approved with an explicit workstream:
 

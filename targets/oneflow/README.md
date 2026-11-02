@@ -130,7 +130,8 @@ Proposed and stale tickets appear in `agentlab inbox`. If a contract, scope,
 
 ## GitHub source
 
-The source uses the authenticated `gh` CLI and is read-only. It creates candidates,
+The source uses the authenticated agent account (`lql341-agent`) through the
+`gh-agent` wrapper, not the human account. It is read-only and creates candidates,
 not tickets.
 
 ```bash

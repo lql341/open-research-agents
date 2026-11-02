@@ -575,7 +575,8 @@ proposed 和 stale ticket 会出现在收件箱。参见 [`docs/usage.zh-CN.md`]
 
 目标：让工作从事件流进入，同时不失去控制。
 
-- 第一个 Source：通过已认证的 `gh` CLI 读取 GitHub notifications（只读）。
+- 第一个 Source：通过已认证的 **agent 账号** wrapper（`GITHUB_CLI`，例如 `gh-agent`）读取
+  GitHub notifications，不使用真人账号。只读。
 - 候选记录 repo、notification id、reason、subject type、title、URL、strength 和 status。
   notifications endpoint 不提供 actor，因此 `sender` 暂为 `unknown`，后续 Source 适配器再补齐。
 - 使用 notification id + `updated_at` 去重；同一通知更新后会产生新候选。

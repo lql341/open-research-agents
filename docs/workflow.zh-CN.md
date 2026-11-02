@@ -232,8 +232,10 @@ agentlab source github poll --limit 20
 agentlab source github poll --input <fixture.json> --repo owner/name
 ```
 
-每个通知成为 `.agentlab/candidates/` 中的一个候选，并以 `candidate:<id>` 出现在收件箱。
-它不会创建 ticket。人需要指定 workstream 批准：
+`GITHUB_CLI` 必须指向 agent 账号 wrapper，而不是真人账号；
+`agentlab source github status` 会显示账号身份。每个通知成为 `.agentlab/candidates/`
+中的一个候选，并以 `candidate:<id>` 出现在收件箱。它不会创建 ticket。
+人需要指定 workstream 批准：
 
 ```bash
 agentlab decide candidate:<id> --approve --workstream <ws> --note "..."

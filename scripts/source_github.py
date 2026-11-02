@@ -43,7 +43,13 @@ def read_env(path: Path) -> dict[str, str]:
     return values
 
 
-def resolve_repo(root: Path, explicit: str | None) -> str:
+def github_cli(root: Path) -> str:
+    env = read_env(root / ".agentlab" / "domain.env")
+    env.update(read_env(root / ".agentlab" / "target.env"))
+    return env.get("GITHUB_CLI", "gh")
+
+
+def resolve_repo(root: Path, explicit: str | None, cli: str) -> str:
     if explicit:
         return explicit
     env = read_env(root / ".agentlab" / "domain.env")
@@ -51,13 +57,19 @@ def resolve_repo(root: Path, explicit: str | None) -> str:
     if env.get("GITHUB_REPOSITORY"):
         return env["GITHUB_REPOSITORY"]
     out = subprocess.run(
-        ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
+        [cli, "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
         cwd=root, capture_output=True, text=True, check=False,
     )
     return out.stdout.strip() if out.returncode == 0 else ""
 
 
-def load_notifications(args: argparse.Namespace) -> list[dict]:
+def identity(cli: str, cwd: Path) -> str:
+    out = subprocess.run([cli, "api", "user", "--jq", ".login"],
+                         cwd=cwd, capture_output=True, text=True, check=False)
+    return out.stdout.strip() if out.returncode == 0 else "unknown"
+
+
+def load_notifications(args: argparse.Namespace, cli: str) -> list[dict]:
     if args.input:
         payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
         if isinstance(payload, dict):
@@ -66,7 +78,7 @@ def load_notifications(args: argparse.Namespace) -> list[dict]:
             raise ValueError("--input must contain a notification list")
         return payload
     out = subprocess.run(
-        ["gh", "api", "/notifications?all=true&per_page=100"],
+        [cli, "api", "/notifications?all=true&per_page=100"],
         cwd=repo_root(), capture_output=True, text=True, check=False,
     )
     if out.returncode != 0:
@@ -135,12 +147,13 @@ def save_candidate(root: Path, candidate: dict) -> bool:
     return True
 
 
-def write_state(root: Path, repo: str, fetched: int, created: int) -> None:
+def write_state(root: Path, repo: str, account: str, fetched: int, created: int) -> None:
     directory = root / ".agentlab" / "sources"
     directory.mkdir(parents=True, exist_ok=True)
     state = {
         "source": "github",
         "repo": repo,
+        "account": account,
         "last_poll": datetime.now(timezone.utc).isoformat(),
         "fetched": fetched,
         "created": created,
@@ -150,15 +163,17 @@ def write_state(root: Path, repo: str, fetched: int, created: int) -> None:
 
 def command_poll(args: argparse.Namespace) -> int:
     root = repo_root()
-    repo = resolve_repo(root, args.repo)
+    cli = github_cli(root)
+    repo = resolve_repo(root, args.repo, cli)
     if not repo:
         print("source github: repository not configured; use --repo owner/name or GITHUB_REPOSITORY", file=sys.stderr)
         return 2
     try:
-        notifications = load_notifications(args)
+        notifications = load_notifications(args, cli)
     except (OSError, ValueError) as error:
         print(f"source github: {error}", file=sys.stderr)
         return 1
+    account = "fixture" if args.input else identity(cli, root)
     created = 0
     skipped = 0
     candidates = []
@@ -172,14 +187,14 @@ def command_poll(args: argparse.Namespace) -> int:
             candidates.append(candidate)
         else:
             skipped += 1
-    write_state(root, repo, len(notifications), created)
-    result = {"repo": repo, "fetched": len(notifications), "created": created,
-              "skipped": skipped, "candidates": candidates}
+    write_state(root, repo, account, len(notifications), created)
+    result = {"repo": repo, "account": account, "fetched": len(notifications),
+              "created": created, "skipped": skipped, "candidates": candidates}
     if args.json:
         json.dump(result, sys.stdout, indent=2, ensure_ascii=False)
         print()
     else:
-        print(f"github source: repo={repo} fetched={len(notifications)} created={created} skipped={skipped}")
+        print(f"github source: repo={repo} account={account} fetched={len(notifications)} created={created} skipped={skipped}")
         for candidate in candidates:
             print(f"  candidate:{candidate['id']}  {candidate['title']}")
             print(f"       reason={candidate['reason']} strength={candidate['strength']} {candidate['url']}")
@@ -208,12 +223,13 @@ def command_status(args: argparse.Namespace) -> int:
                 continue
             if candidate.get("status") == "pending":
                 pending += 1
-    result = {"configured": bool(state), **state, "pending_candidates": pending}
+    result = {"configured": bool(state), "cli": github_cli(root), **state, "pending_candidates": pending}
     if args.json:
         json.dump(result, sys.stdout, indent=2, ensure_ascii=False)
         print()
     else:
-        print(f"github source: repo={state.get('repo', '-')} last_poll={state.get('last_poll', '-')} pending_candidates={pending}")
+        print(f"github source: repo={state.get('repo', '-')} account={state.get('account', '-')} "
+              f"last_poll={state.get('last_poll', '-')} pending_candidates={pending}")
     return 0
 
 

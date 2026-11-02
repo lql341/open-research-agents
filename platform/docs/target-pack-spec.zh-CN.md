@@ -47,7 +47,8 @@ targets/<target>/
 | `REQUIRE_UNIT` | 否 | `1`（默认）要求存在 C++ 单元测试源 |
 | `UNIT_DIR` | 否 | `REQUIRE_UNIT` 检查的目录（默认 `tests/unit`） |
 | `BUILD_FILE` | 否 | 构建入口文件（默认 `CMakeLists.txt`） |
-| `GITHUB_REPOSITORY` | 否 | 将 GitHub 通知过滤到 `owner/name`；默认使用 `gh repo view` |
+| `GITHUB_CLI` | 否 | GitHub Source 使用的 CLI（默认 `gh`）；应指向 agent 账号 wrapper，而不是真人账号 |
+| `GITHUB_REPOSITORY` | 否 | 将 GitHub 通知过滤到 `owner/name`；默认使用 `<GITHUB_CLI> repo view` |
 
 允许其他 key；平台会忽略未知 key。target 自己的验证脚本可以读取 target 特有变量。
 

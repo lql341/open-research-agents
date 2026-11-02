@@ -50,7 +50,8 @@ comments.
 | `REQUIRE_UNIT` | no | `1` (default) requires a C++ unit test source |
 | `UNIT_DIR` | no | Directory checked by `REQUIRE_UNIT` (default `tests/unit`) |
 | `BUILD_FILE` | no | Build entry file (default `CMakeLists.txt`) |
-| `GITHUB_REPOSITORY` | no | Filter GitHub notifications to `owner/name`; default is `gh repo view` |
+| `GITHUB_CLI` | no | CLI used by the GitHub source (default `gh`); set it to the agent account wrapper, not the human account |
+| `GITHUB_REPOSITORY` | no | Filter GitHub notifications to `owner/name`; default is `<GITHUB_CLI> repo view` |
 
 Other keys are allowed; the platform ignores unknown keys. Target-specific
 variables can be consumed by the target's own verification scripts.

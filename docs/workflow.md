@@ -248,9 +248,11 @@ agentlab source github poll --limit 20
 agentlab source github poll --input <fixture.json> --repo owner/name
 ```
 
-Each notification becomes a candidate in `.agentlab/candidates/` and appears in
-the inbox as `candidate:<id>`. It does not create a ticket. A human approves it
-with an explicit workstream:
+Set `GITHUB_CLI` to the agent account wrapper, not the human account;
+`agentlab source github status` reports the account identity. Each notification
+becomes a candidate in `.agentlab/candidates/` and appears in the inbox as
+`candidate:<id>`. It does not create a ticket. A human approves it with an
+explicit workstream:
 
 ```bash
 agentlab decide candidate:<id> --approve --workstream <ws> --note "..."
